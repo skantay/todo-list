@@ -1,0 +1,7 @@
+server:
+  host: localhost
+  port: 8080
+mongodb:
+  user: admin
+  password: password
+  port: 27017
