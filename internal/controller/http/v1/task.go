@@ -66,13 +66,15 @@ func getStatus(c *gin.Context) string {
 func (t taskRoutes) create(c *gin.Context) {
 	type request entity.Task
 
-	if err := c.BindJSON(&request); err != nil {
+	var req request
+
+	if err := c.BindJSON(&req); err != nil {
 		respondError(c, http.StatusBadRequest)
 
 		return
 	}
 
-	id, err := t.taskUsecase.Create(c.Request.Context(), request.Title, request.ActiveAt)
+	id, err := t.taskUsecase.Create(c.Request.Context(), req.Title, req.ActiveAt)
 	if err != nil {
 		respondError(c, http.StatusInternalServerError)
 

@@ -6,8 +6,6 @@ import (
 	"github.com/spf13/viper"
 )
 
-//p{}[]()-0;:'"+=
-
 type Config struct {
 	Server  Server  `yaml:"server"`
 	MongoDB MongoDB `yaml:"mongodb"`
