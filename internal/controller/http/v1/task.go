@@ -2,9 +2,13 @@ package v1
 
 import (
 	"context"
+	"errors"
+	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"github.com/skantay/todo-list/internal/entity"
+
+	"github.com/skantay/todo-list/internal/usecase"
 )
 
 type taskUsecase interface {
@@ -35,22 +39,47 @@ func newTaskRoutes(router *gin.RouterGroup, taskUsecase taskUsecase) {
 	router.PUT("/tasks/:id/done", taskRoutes.markDone)
 }
 
-// @BasePath /api/v1/todo-list
-
-// ListExample godoc
-// @Summary list example
-// @Schemes
-// @Description list tasks
-// @Tags example
-// @Produce json
-// @Success 200 {string} Jelloworld
-// @Router /tasks [get]
 func (t taskRoutes) list(c *gin.Context) {
-	panic("implement me")
+	status := getStatus(c)
+
+	tasks, err := t.taskUsecase.List(c.Request.Context(), status)
+	if err != nil {
+		if errors.Is(err, usecase.ErrInvalidStatus) {
+			respondError(c, http.StatusBadRequest)
+
+			return
+		}
+
+		respondError(c, http.StatusInternalServerError)
+
+		return
+	}
+
+	c.JSON(http.StatusOK, tasks)
 }
 
+func getStatus(c *gin.Context) string {
+	return c.Query("status")
+}
+
+// Create(ctx context.Context, title string, activeAt entity.TaskDate) (string, error)
 func (t taskRoutes) create(c *gin.Context) {
-	panic("implement me")
+	type request entity.Task
+
+	if err := c.BindJSON(&request); err != nil {
+		respondError(c, http.StatusBadRequest)
+
+		return
+	}
+
+	id, err := t.taskUsecase.Create(c.Request.Context(), request.Title, request.ActiveAt)
+	if err != nil {
+		respondError(c, http.StatusInternalServerError)
+
+		return
+	}
+
+	c.JSON(http.StatusOK, id)
 }
 
 func (t taskRoutes) update(c *gin.Context) {
