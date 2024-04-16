@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -21,17 +22,18 @@ func newTaskRepository(collection *mongo.Collection) taskRepository {
 	}
 }
 
-func (t taskRepository) Create(ctx context.Context, task entity.Task) (string, error) {
-	// Check if the task already exists
-	existingTask, err := t.getByTitle(ctx, task.Title)
-	if err != nil {
-		return "", fmt.Errorf("failed to check task uniqueness: %w", err)
-	}
-	if existingTask != nil {
-		return "", fmt.Errorf("task with title '%s' already exists", task.Title)
+func (t taskRepository) Create(ctx context.Context, task entity.Task, isUnique bool) (string, error) {
+	if isUnique {
+
+		existingTask, err := t.findTask(ctx, task.Title, task.ActiveAt)
+		if err != nil {
+			return "", fmt.Errorf("failed to check task uniqueness: %w", err)
+		}
+		if existingTask {
+			return "", fmt.Errorf("task with title '%s' already exists", task.Title)
+		}
 	}
 
-	// If the task is unique, insert it into the database
 	result, err := t.collection.InsertOne(ctx, task)
 	if err != nil {
 		return "", fmt.Errorf("failed to insert a task into db: %w", err)
@@ -44,12 +46,25 @@ func (t taskRepository) Create(ctx context.Context, task entity.Task) (string, e
 	return primitive.NilObjectID.Hex(), errors.New("failed to retrieve inserted ID")
 }
 
-func (t taskRepository) getByTitle(ctx context.Context, title string, activeAt TaskD) (bool, error) {
+func (t taskRepository) findTask(ctx context.Context, title string, activeAt entity.TaskDate) (bool, error) {
 	filter := bson.M{
-		"title":title,
-		"activeAt":activeAt
+		"title":    title,
+		"activeAt": activeAt,
 	}
-} 
+
+	var result entity.Task
+
+	err := t.collection.FindOne(ctx, filter).Decode(&result)
+	if err != nil {
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return false, nil
+		}
+
+		return false, fmt.Errorf("failed to find task: %w", err)
+	}
+
+	return true, nil
+}
 
 func (t taskRepository) List(ctx context.Context, status string, now time.Time) ([]entity.Task, error) {
 	filter := bson.M{

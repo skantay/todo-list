@@ -1,10 +1,23 @@
 version: '3'
 services:
-  mongo:
+  mongodb:
     image: mongo
     restart: always
     environment:
       MONGO_INITDB_ROOT_USERNAME: admin
       MONGO_INITDB_ROOT_PASSWORD: password
+    networks:
+      - local
+  app:
+    build: .
+    restart: always
+    networks:
+      - local
+    depends_on:
+      - mongodb
     ports:
-      - 27017:27017
+      - 8080:8080
+
+networks:
+  local:
+    driver: bridge

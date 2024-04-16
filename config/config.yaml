@@ -5,3 +5,4 @@ mongodb:
   user: admin
   password: password
   port: 27017
+  host: mongodb

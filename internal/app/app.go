@@ -24,7 +24,6 @@ const (
 )
 
 func Run() error {
-
 	// Загружаем конфиг параметры
 	cfg, err := config.New(configPath)
 	if err != nil {
@@ -48,13 +47,17 @@ func Run() error {
 		return fmt.Errorf("error connecting to mongodb: %w", err)
 	}
 
+	collections := repository.Collections{
+		Task: "task",
+	}
+
 	// иньекций зависимостей
-	repository := repository.New(client, "taskdb", "tasks")
+	repository := repository.New(client, "taskdb", collections)
 	usecase := usecase.New(repository)
-	
+
 	router := gin.Default()
 	v1.Set(router, usecase)
-	
+
 	slog.Info("starting server on", "host", cfg.Server.Host, "port", cfg.Server.Port)
 	// запуск сервера
 	httpServer := httpserver.New(
@@ -62,7 +65,7 @@ func Run() error {
 		httpserver.Port(cfg.Server.Port),
 	)
 
-	//gracefull shutdown
+	// gracefull shutdown
 	interrupt := make(chan os.Signal, 1)
 	signal.Notify(interrupt, os.Interrupt, syscall.SIGTERM)
 
