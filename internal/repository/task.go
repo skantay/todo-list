@@ -44,7 +44,7 @@ func (t taskRepository) Create(ctx context.Context, task entity.Task) (string, e
 	return primitive.NilObjectID.Hex(), errors.New("failed to retrieve inserted ID")
 }
 
-func (t taskRepository) getByTitle(ctx context.Context, title string, activeAt TaskDg) (bool, error) {
+func (t taskRepository) getByTitle(ctx context.Context, title string, activeAt TaskD) (bool, error) {
 	filter := bson.M{
 		"title":title,
 		"activeAt":activeAt
