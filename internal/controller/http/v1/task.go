@@ -6,8 +6,10 @@ import (
 	"net/http"
 
 	"github.com/skantay/todo-list/internal/entity"
+	_ "github.com/skantay/todo-list/docs/api/v1"
 
 	"github.com/gin-gonic/gin"
+
 )
 
 type taskUsecase interface {
