@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/skantay/todo-list/internal/entity"
+
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -30,40 +31,55 @@ func (t taskRepository) Create(ctx context.Context, task entity.Task, isUnique b
 			return "", fmt.Errorf("failed to check task uniqueness: %w", err)
 		}
 		if existingTask {
-			return "", fmt.Errorf("task with title '%s' already exists", task.Title)
+			return "", entity.ErrAlreadyExists
 		}
 	}
 
-	result, err := t.collection.InsertOne(ctx, task)
+	taskBSON := bson.M{
+		"title":    task.Title,
+		"activeAt": task.ActiveAt.Time(),
+		"status":   task.Status,
+	}
+
+	result, err := t.collection.InsertOne(ctx, taskBSON)
 	if err != nil {
 		return "", fmt.Errorf("failed to insert a task into db: %w", err)
 	}
 
-	if oidResult, ok := result.InsertedID.(primitive.ObjectID); ok {
-		return oidResult.Hex(), nil
+	oidResult, ok := result.InsertedID.(primitive.ObjectID)
+	if !ok {
+		return "", errors.New("failed to retrieve inserted ID")
 	}
 
-	return primitive.NilObjectID.Hex(), errors.New("failed to retrieve inserted ID")
+	return oidResult.Hex(), nil
 }
 
 func (t taskRepository) findTask(ctx context.Context, title string, activeAt entity.TaskDate) (bool, error) {
 	filter := bson.M{
 		"title":    title,
-		"activeAt": activeAt,
+		"activeAt": activeAt.Time(),
 	}
 
-	var result entity.Task
-
-	err := t.collection.FindOne(ctx, filter).Decode(&result)
-	if err != nil {
+	result := t.collection.FindOne(ctx, filter)
+	if err := result.Err(); err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
 			return false, nil
 		}
-
 		return false, fmt.Errorf("failed to find task: %w", err)
 	}
 
+	if result.Err() == mongo.ErrNoDocuments {
+		return false, nil
+	}
+
 	return true, nil
+}
+
+type sTask struct {
+	ID       primitive.ObjectID `bson:"_id"`
+	ActiveAt time.Time
+	Title    string
+	Status   string
 }
 
 func (t taskRepository) List(ctx context.Context, status string, now time.Time) ([]entity.Task, error) {
@@ -79,12 +95,21 @@ func (t taskRepository) List(ctx context.Context, status string, now time.Time) 
 	defer cursor.Close(ctx)
 
 	var tasks []entity.Task
+
 	for cursor.Next(ctx) {
-		var task entity.Task
+		var task sTask
 		if err := cursor.Decode(&task); err != nil {
 			return nil, fmt.Errorf("failed to decode task: %w", err)
 		}
-		tasks = append(tasks, task)
+
+		taskEntity := entity.Task{
+			ID:       task.ID.Hex(),
+			Status:   task.Status,
+			ActiveAt: entity.TaskDate(task.ActiveAt),
+			Title:    task.Title,
+		}
+
+		tasks = append(tasks, taskEntity)
 	}
 
 	if err := cursor.Err(); err != nil {
@@ -95,7 +120,12 @@ func (t taskRepository) List(ctx context.Context, status string, now time.Time) 
 }
 
 func (t taskRepository) Update(ctx context.Context, task entity.Task) error {
-	filter := bson.M{"_id": task.ID}
+	id, err := primitive.ObjectIDFromHex(task.ID)
+	if err != nil {
+		return fmt.Errorf("failed to convert ObjectId: %w", err)
+	}
+
+	filter := bson.M{"_id": id}
 
 	update := bson.M{
 		"$set": bson.M{
@@ -117,7 +147,12 @@ func (t taskRepository) Update(ctx context.Context, task entity.Task) error {
 }
 
 func (t taskRepository) MarkDone(ctx context.Context, id string) error {
-	filter := bson.M{"_id": id}
+	idObj, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return fmt.Errorf("failed to convert ObjectId: %w", err)
+	}
+
+	filter := bson.M{"_id": idObj}
 	update := bson.M{
 		"$set": bson.M{
 			"status": entity.Done,
@@ -137,7 +172,11 @@ func (t taskRepository) MarkDone(ctx context.Context, id string) error {
 }
 
 func (t taskRepository) Delete(ctx context.Context, id string) error {
-	filter := bson.M{"_id": id}
+	idObj, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return fmt.Errorf("failed to convert ObjectId: %w", err)
+	}
+	filter := bson.M{"_id": idObj}
 
 	result, err := t.collection.DeleteOne(ctx, filter)
 	if err != nil {

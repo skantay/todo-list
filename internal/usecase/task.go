@@ -53,8 +53,10 @@ func (t taskUsecase) Create(ctx context.Context, title string, activeAt entity.T
 }
 
 func (t taskUsecase) List(ctx context.Context, status string) ([]entity.Task, error) {
-	if status != entity.Active && status != entity.Done {
+	if (status != entity.Active && status != entity.Done) && status != "" {
 		return nil, ErrInvalidStatus
+	} else if status == "" {
+		status = entity.Active
 	}
 
 	tasks, err := t.repo.List(ctx, status, time.Now())
@@ -66,7 +68,7 @@ func (t taskUsecase) List(ctx context.Context, status string) ([]entity.Task, er
 		if tasks[i].ActiveAt.Time().Weekday() == time.Saturday || tasks[i].ActiveAt.Time().Weekday() == time.Sunday {
 			tasks[i].Title = "ВЫХОДНОЙ - " + tasks[i].Title
 		}
-	}	
+	}
 
 	return tasks, nil
 }

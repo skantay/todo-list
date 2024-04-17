@@ -2,9 +2,14 @@ package entity
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"time"
+
+	"go.mongodb.org/mongo-driver/bson"
 )
+
+var ErrAlreadyExists = errors.New("task already exists")
 
 const (
 	Active     = "active"
@@ -18,7 +23,7 @@ type Task struct {
 	ID       string   `json:"id"`
 	Title    string   `json:"title"`
 	ActiveAt TaskDate `json:"active_at"`
-	status   string   `json:"-"`
+	Status   string   `json:"-"`
 }
 
 func NewTask(title string, activeAt TaskDate) Task {
@@ -32,15 +37,15 @@ func NewTask(title string, activeAt TaskDate) Task {
 }
 
 func (t *Task) GetStatus() string {
-	return t.status
+	return t.Status
 }
 
 func (t *Task) SetStatusDone() {
-	t.status = Done
+	t.Status = Done
 }
 
 func (t *Task) SetStatusActive() {
-	t.status = Active
+	t.Status = Active
 }
 
 func (td TaskDate) Time() time.Time {
@@ -50,11 +55,11 @@ func (td TaskDate) Time() time.Time {
 func (td *TaskDate) UnmarshalJSON(data []byte) error {
 	var rawDate string
 	if err := json.Unmarshal(data, &rawDate); err != nil {
-		return fmt.Errorf("failed to unmarshal: %w",err)
+		return fmt.Errorf("failed to unmarshal: %w", err)
 	}
 	parsedDate, err := time.Parse(dateFormat, rawDate)
 	if err != nil {
-		return fmt.Errorf("failed to parse: %w",err)
+		return fmt.Errorf("failed to parse: %w", err)
 	}
 	*td = TaskDate(parsedDate)
 	return nil
@@ -62,4 +67,13 @@ func (td *TaskDate) UnmarshalJSON(data []byte) error {
 
 func (td TaskDate) MarshalJSON() ([]byte, error) {
 	return []byte(fmt.Sprintf(`"%s"`, time.Time(td).Format(dateFormat))), nil
+}
+
+func (td *TaskDate) UnmarshalBSON(data []byte) error {
+	var t time.Time
+	if err := bson.Unmarshal(data, &t); err != nil {
+		return err
+	}
+	*td = TaskDate(t)
+	return nil
 }
