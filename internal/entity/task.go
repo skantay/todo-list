@@ -13,6 +13,8 @@ import (
 var (
 	ErrAlreadyExists = errors.New("task already exists")
 	ErrTaskNotFound  = errors.New("task does not exist")
+	ErrInvalidTitle  = errors.New("invalid title")
+	ErrInvalidStatus = errors.New("invalid status")
 )
 
 const (

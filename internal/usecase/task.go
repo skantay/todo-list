@@ -2,18 +2,12 @@ package usecase
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"log/slog"
 	"time"
 	"unicode/utf8"
 
 	"github.com/skantay/todo-list/internal/entity"
-)
-
-var (
-	ErrInvalidTitle  = errors.New("invalid title")
-	ErrInvalidStatus = errors.New("invalid status")
 )
 
 const (
@@ -45,7 +39,7 @@ func newTaskUsecase(taskRepo taskRepo, log *slog.Logger) taskUsecase {
 func (t taskUsecase) Create(ctx context.Context, title string, activeAt entity.TaskDate) (string, error) {
 	// title не может быть больше maxTitleLen
 	if utf8.RuneCountInString(title) > maxTitleLen {
-		return "", ErrInvalidTitle
+		return "", entity.ErrInvalidTitle
 	}
 
 	task := entity.NewTask(title, activeAt)
@@ -61,7 +55,7 @@ func (t taskUsecase) Create(ctx context.Context, title string, activeAt entity.T
 func (t taskUsecase) List(ctx context.Context, status string) ([]entity.Task, error) {
 	// Статусы кроме active, done считаются invalid
 	if status != entity.Active && status != entity.Done && status != "" {
-		return nil, ErrInvalidStatus
+		return nil, entity.ErrInvalidStatus
 	}
 
 	// По умолчанию статус active

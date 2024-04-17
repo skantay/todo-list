@@ -85,6 +85,8 @@ paths:
           description: No Content
         "400":
           description: Bad Request
+        "404":
+          description: Not Found
         "500":
           description: Internal Server Error
       summary: Delete task
@@ -111,6 +113,8 @@ paths:
           description: No Content
         "400":
           description: Bad Request
+        "404":
+          description: Not Found
         "500":
           description: Internal Server Error
       summary: Update task
@@ -126,8 +130,8 @@ paths:
       responses:
         "204":
           description: No Content
-        "400":
-          description: Bad Request
+        "404":
+          description: Not Found
         "500":
           description: Internal Server Error
       summary: Mark task as done

@@ -2,6 +2,7 @@ package v1
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 	"net/http"
 
@@ -62,8 +63,12 @@ func (t taskRoutes) list(c *gin.Context) {
 
 	tasks, err := t.taskUsecase.List(c.Request.Context(), status)
 	if err != nil {
-		t.log.Error("", "error", err)
-		t.handleError(c, err)
+		t.log.Warn("", "error", err)
+		if errors.Is(err, entity.ErrInvalidStatus) {
+			c.Status(http.StatusBadRequest)
+		} else {
+			c.Status(http.StatusInternalServerError)
+		}
 
 		return
 	}
@@ -92,16 +97,21 @@ func (t taskRoutes) create(c *gin.Context) {
 	var req requestTask
 
 	if err := c.BindJSON(&req); err != nil {
-		t.log.Error("", "error", err)
-		t.handleError(c, err)
+		t.log.Warn(http.StatusText(http.StatusInternalServerError), "error", err)
+		c.Status(http.StatusInternalServerError)
 
 		return
 	}
 
 	id, err := t.taskUsecase.Create(c.Request.Context(), req.Title, req.ActiveAt)
 	if err != nil {
-		t.log.Error("", "error", err)
-		t.handleError(c, err)
+		if errors.Is(err, entity.ErrInvalidTitle) {
+			t.log.Warn(http.StatusText(http.StatusBadRequest), "error", err)
+			c.Status(http.StatusBadRequest)
+		} else {
+			t.log.Warn(http.StatusText(http.StatusInternalServerError), "error", err)
+			c.Status(http.StatusInternalServerError)
+		}
 
 		return
 	}
@@ -109,6 +119,7 @@ func (t taskRoutes) create(c *gin.Context) {
 	response := resp{
 		ID: id,
 	}
+	t.log.Debug(response.ID)
 
 	c.JSON(http.StatusCreated, response)
 }
@@ -121,26 +132,35 @@ func (t taskRoutes) create(c *gin.Context) {
 // @Param requestTask body requestTask true "Task details"
 // @Success 204
 // @Failure 400
+// @Failure 404
 // @Failure 500
 // @Router /tasks/{id} [put]
 func (t taskRoutes) update(c *gin.Context) {
 	var req requestTask
 
 	if err := c.BindJSON(&req); err != nil {
-		t.log.Error("", "error", err)
-		t.handleError(c, err)
+		t.log.Warn(http.StatusText(http.StatusInternalServerError), "error", err)
+		c.Status(http.StatusInternalServerError)
 
 		return
 	}
 
 	id := c.Param("id")
-
+	t.log.Debug(id)
 	task := entity.NewTask(req.Title, req.ActiveAt)
 	task.ID = id
 
 	if err := t.taskUsecase.UpdateTask(c.Request.Context(), task); err != nil {
-		t.log.Error("", "error", err)
-		t.handleError(c, err)
+		if errors.Is(err, entity.ErrAlreadyExists) {
+			t.log.Warn(http.StatusText(http.StatusBadRequest), "error", err)
+			c.Status(http.StatusBadRequest)
+		} else if errors.Is(err, entity.ErrTaskNotFound) {
+			t.log.Warn(http.StatusText(http.StatusNotFound), "error", err)
+			c.Status(http.StatusNotFound)
+		} else {
+			t.log.Warn(http.StatusText(http.StatusInternalServerError), "error", err)
+			c.Status(http.StatusInternalServerError)
+		}
 
 		return
 	}
@@ -153,14 +173,23 @@ func (t taskRoutes) update(c *gin.Context) {
 // @Param id path string true "Task ID"
 // @Success 204
 // @Failure 400
+// @Failure 404
 // @Failure 500
 // @Router /tasks/{id} [delete]
 func (t taskRoutes) delete(c *gin.Context) {
 	id := c.Param("id")
 
 	if err := t.taskUsecase.Delete(c.Request.Context(), id); err != nil {
-		t.log.Error("", "error", err)
-		t.handleError(c, err)
+		if errors.Is(err, entity.ErrAlreadyExists) {
+			t.log.Warn(http.StatusText(http.StatusBadRequest), "error", err)
+			c.Status(http.StatusBadRequest)
+		} else if errors.Is(err, entity.ErrTaskNotFound) {
+			t.log.Warn(http.StatusText(http.StatusNotFound), "error", err)
+			c.Status(http.StatusNotFound)
+		} else {
+			t.log.Warn(http.StatusText(http.StatusInternalServerError), "error", err)
+			c.Status(http.StatusInternalServerError)
+		}
 
 		return
 	}
@@ -172,15 +201,20 @@ func (t taskRoutes) delete(c *gin.Context) {
 // @Description Mark an existing task as done based on its ID
 // @Param id path string true "Task ID"
 // @Success 204
-// @Failure 400
+// @Failure 404
 // @Failure 500
 // @Router /tasks/{id}/done [put]
 func (t taskRoutes) markDone(c *gin.Context) {
 	id := c.Param("id")
 
 	if err := t.taskUsecase.MarkTaskDone(c.Request.Context(), id); err != nil {
-		t.log.Error("", "error", err)
-		t.handleError(c, err)
+		if errors.Is(err, entity.ErrTaskNotFound) {
+			t.log.Warn(http.StatusText(http.StatusNotFound), "error", err)
+			c.Status(http.StatusNotFound)
+		} else {
+			t.log.Warn(http.StatusText(http.StatusInternalServerError), "error", err)
+			c.Status(http.StatusInternalServerError)
+		}
 
 		return
 	}
