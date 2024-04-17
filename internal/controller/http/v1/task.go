@@ -73,9 +73,9 @@ func (t taskRoutes) list(c *gin.Context) {
 	if err != nil {
 		t.log.Warn("", "error", err)
 		if errors.Is(err, entity.ErrInvalidStatus) {
-			c.Status(http.StatusBadRequest)
+			t.respondStatus(c, http.StatusBadRequest, err)
 		} else {
-			c.Status(http.StatusInternalServerError)
+			t.respondStatus(c, http.StatusInternalServerError, err)
 		}
 
 		return
@@ -109,23 +109,18 @@ func (t taskRoutes) create(c *gin.Context) {
 	var req requestTask
 
 	if err := c.BindJSON(&req); err != nil {
-		t.log.Warn(http.StatusText(http.StatusInternalServerError), "error", err)
-		c.Status(http.StatusInternalServerError)
-
+		t.respondStatus(c, http.StatusInternalServerError, err)
 		return
 	}
 
 	id, err := t.taskUsecase.Create(c.Request.Context(), req.Title, req.ActiveAt)
 	if err != nil {
 		if errors.Is(err, entity.ErrInvalidTitle) || errors.Is(err, entity.ErrInvalidID) {
-			t.log.Warn(http.StatusText(http.StatusBadRequest), "error", err)
-			c.Status(http.StatusBadRequest)
+			t.respondStatus(c, http.StatusBadRequest, err)
 		} else if errors.Is(err, entity.ErrAlreadyExists) {
-			t.log.Warn(http.StatusText(http.StatusNotFound), "error", err)
-			c.Status(http.StatusNotFound)
+			t.respondStatus(c, http.StatusNotFound, err)
 		} else {
-			t.log.Warn(http.StatusText(http.StatusInternalServerError), "error", err)
-			c.Status(http.StatusInternalServerError)
+			t.respondStatus(c, http.StatusInternalServerError, err)
 		}
 
 		return
@@ -156,8 +151,7 @@ func (t taskRoutes) update(c *gin.Context) {
 	var req requestTask
 
 	if err := c.BindJSON(&req); err != nil {
-		t.log.Warn(http.StatusText(http.StatusInternalServerError), "error", err)
-		c.Status(http.StatusInternalServerError)
+		t.respondStatus(c, http.StatusInternalServerError, err)
 
 		return
 	}
@@ -169,14 +163,11 @@ func (t taskRoutes) update(c *gin.Context) {
 
 	if err := t.taskUsecase.UpdateTask(c.Request.Context(), task); err != nil {
 		if errors.Is(err, entity.ErrAlreadyExists) || errors.Is(err, entity.ErrInvalidID) || errors.Is(err, entity.ErrInvalidTitle) {
-			t.log.Warn(http.StatusText(http.StatusBadRequest), "error", err)
-			c.Status(http.StatusBadRequest)
+			t.respondStatus(c, http.StatusBadRequest, err)
 		} else if errors.Is(err, entity.ErrTaskNotFound) {
-			t.log.Warn(http.StatusText(http.StatusNotFound), "error", err)
-			c.Status(http.StatusNotFound)
+			t.respondStatus(c, http.StatusNotFound, err)
 		} else {
-			t.log.Warn(http.StatusText(http.StatusInternalServerError), "error", err)
-			c.Status(http.StatusInternalServerError)
+			t.respondStatus(c, http.StatusInternalServerError, err)
 		}
 
 		return
@@ -200,14 +191,11 @@ func (t taskRoutes) delete(c *gin.Context) {
 
 	if err := t.taskUsecase.Delete(c.Request.Context(), id); err != nil {
 		if errors.Is(err, entity.ErrAlreadyExists) || errors.Is(err, entity.ErrInvalidID) {
-			t.log.Warn(http.StatusText(http.StatusBadRequest), "error", err)
-			c.Status(http.StatusBadRequest)
+			t.respondStatus(c, http.StatusBadRequest, err)
 		} else if errors.Is(err, entity.ErrTaskNotFound) {
-			t.log.Warn(http.StatusText(http.StatusNotFound), "error", err)
-			c.Status(http.StatusNotFound)
+			t.respondStatus(c, http.StatusNotFound, err)
 		} else {
-			t.log.Warn(http.StatusText(http.StatusInternalServerError), "error", err)
-			c.Status(http.StatusInternalServerError)
+			t.respondStatus(c, http.StatusInternalServerError, err)
 		}
 
 		return
@@ -231,14 +219,11 @@ func (t taskRoutes) markDone(c *gin.Context) {
 
 	if err := t.taskUsecase.MarkTaskDone(c.Request.Context(), id); err != nil {
 		if errors.Is(err, entity.ErrTaskNotFound) || errors.Is(err, entity.ErrAlreadyExists) {
-			t.log.Warn(http.StatusText(http.StatusNotFound), "error", err)
-			c.Status(http.StatusNotFound)
+			t.respondStatus(c, http.StatusNotFound, err)
 		} else if errors.Is(err, entity.ErrInvalidID) {
-			t.log.Warn(http.StatusText(http.StatusBadRequest), "error", err)
-			c.Status(http.StatusBadRequest)
+			t.respondStatus(c, http.StatusBadRequest, err)
 		} else {
-			t.log.Warn(http.StatusText(http.StatusInternalServerError), "error", err)
-			c.Status(http.StatusInternalServerError)
+			t.respondStatus(c, http.StatusInternalServerError, err)
 		}
 
 		return
@@ -246,3 +231,8 @@ func (t taskRoutes) markDone(c *gin.Context) {
 
 	c.Status(http.StatusNoContent)
 }
+
+func (t taskRoutes)respondStatus(c *gin.Context, code int, err error) {
+	t.log.Warn(http.StatusText(code), "error", err)
+	c.Status(code)
+} 

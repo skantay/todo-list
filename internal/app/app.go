@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"net"
 	"os"
 	"os/signal"
 	"syscall"
@@ -33,11 +34,10 @@ func Run() error {
 
 	// Указываем параметры для установки соединения с MongoDB
 	options := options.Client().ApplyURI(
-		fmt.Sprintf("mongodb://%s:%s@%s:%s",
+		fmt.Sprintf("mongodb://%s:%s@%s",
 			cfg.MongoDB.User,
 			cfg.MongoDB.Password,
-			cfg.MongoDB.Host,
-			cfg.MongoDB.Port,
+			net.JoinHostPort(cfg.MongoDB.Host, cfg.MongoDB.Port),
 		),
 	)
 
@@ -62,7 +62,7 @@ func Run() error {
 	// Инициализация логгера
 	logger := log.InitSlog(opts)
 
-	// иньекций зависимостей
+	// Dependecy Injection
 	repository := repository.New(client, "taskdb", collections, logger)
 	usecase := usecase.New(repository, logger)
 
@@ -77,7 +77,7 @@ func Run() error {
 		httpserver.Port(cfg.Server.Port),
 	)
 
-	// gracefull shutdown
+	// Gracefull shutdown
 	interrupt := make(chan os.Signal, 1)
 	signal.Notify(interrupt, os.Interrupt, syscall.SIGTERM)
 
@@ -86,16 +86,20 @@ func Run() error {
 	// функция httpServer.Notify() возвращает канал, и с этого канала ожидаем какие либо ошибки при запуске server.ListenAndServe()
 	select {
 	case s := <-interrupt:
-		slog.Info("app - Run - signal: " + s.String())
+		logger.Info("app - Run - signal: " + s.String())
 	case err = <-httpServer.Notify():
-		slog.Error("app - Run - httpServer.Notify: %w", err)
+		logger.Error("app - Run - httpServer.Notify: %w", err)
 	}
 
-	slog.Info("Shutting down...")
+	logger.Info("Shutting down...")
+
 	err = httpServer.Shutdown()
+
 	if err != nil {
-		slog.Error("app - Run - httpServer.Shutdown: %w", err)
+		logger.Error("app - Run - httpServer.Shutdown: %w", err)
+
+		return fmt.Errorf("failed to shutdown: %w", err)
 	}
 
-	return err
+	return nil
 }

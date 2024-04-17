@@ -43,6 +43,7 @@ func NewTask(title string, activeAt TaskDate) Task {
 		Title:    title,
 		ActiveAt: activeAt,
 	}
+
 	t.SetStatusActive()
 
 	return t
@@ -66,11 +67,14 @@ func (td *TaskDate) UnmarshalJSON(data []byte) error {
 	if err := json.Unmarshal(data, &rawDate); err != nil {
 		return fmt.Errorf("failed to unmarshal: %w", err)
 	}
+
 	parsedDate, err := time.Parse(dateFormat, rawDate)
 	if err != nil {
 		return fmt.Errorf("failed to parse: %w", err)
 	}
+
 	*td = TaskDate(parsedDate)
+	
 	return nil
 }
 
@@ -87,13 +91,19 @@ func (t *Task) UnmarshalBSON(data []byte) error {
 		ActiveAt time.Time          `bson:"activeAt"`
 		Status   string             `bson:"status"`
 	}
+
 	if err := bson.Unmarshal(data, &rawTask); err != nil {
 		return fmt.Errorf("failed to unmarshal Task: %w", err)
 	}
+
 	t.ID = rawTask.ID.Hex()
+	
 	t.Title = rawTask.Title
+	
 	t.ActiveAt = TaskDate(rawTask.ActiveAt)
+	
 	t.Status = rawTask.Status
+	
 	return nil
 }
 
