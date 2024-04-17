@@ -1,19 +1,51 @@
-# {PROJECT NAME}
+# Todo-list
 
-- description
-- used technologies
-- a little more precise description
+Микросервис для работы со списками задач: создание, удаление и обновление задач.
 
-# Getting Started
+Используемые технологии:
 
-- instruction on how to start
+- MongoDB (в качестве хранилища данных)
+- Docker (для запуска сервиса)
+- Swagger (для документации API)
+- Gin (веб-фреймворк)
 
-# Usage
+Сервис написан с использованием Clean Architecture, что позволяет легко расширять его функциональность и тестировать. Также реализован Graceful Shutdown для корректного завершения работы сервиса.
 
-- list/show available commands
+# Getting started
 
-# Docs
+## Usage
 
-- swagger
-- erm
-- etc...
+Для запуска сервиса выполните команду make compose-up.
+
+После запуска сервиса вы сможете просмотреть документацию API по адресу http://localhost:8080/swagger/index.html. По умолчанию используется порт 8080.
+
+## Примеры
+
+Некоторые примеры запросов:
+
+- [Создание задачи](#create-task)
+- Удаление задачи
+- Обновление задачи
+- Пометка задачи как завершенной
+- Получение всех активных задач
+- Получение всех завершенных задач
+
+### Создание задачи <a name="create-task"></a>
+
+Request
+
+```curl
+curl --location --request POST 'localhost:8080/api/v1/todo-list/tasks' \
+--header 'Content-Type: application/json' \
+--data-raw '{
+    "title":"title",
+    "activeAt":"2024-04-01"
+}'
+```
+
+Response
+```json
+{
+    "id": "661fbb485131cd932a981b26"
+}
+```
