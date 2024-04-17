@@ -17,7 +17,9 @@ var (
 )
 
 const (
-	maxTitleLen = 200
+	maxTitleLen        = 200
+	weekendTitlePrefix = "ВЫХОДНОЙ - "
+	defaultStatus      = entity.Active
 )
 
 type taskRepo interface {
@@ -42,8 +44,6 @@ func newTaskUsecase(taskRepo taskRepo, log *slog.Logger) taskUsecase {
 
 func (t taskUsecase) Create(ctx context.Context, title string, activeAt entity.TaskDate) (string, error) {
 	if utf8.RuneCountInString(title) > maxTitleLen {
-		t.log.Error(ErrInvalidTitle.Error())
-		t.log.Debug(ErrInvalidTitle.Error(), "title", title)
 		return "", ErrInvalidTitle
 	}
 
@@ -58,10 +58,12 @@ func (t taskUsecase) Create(ctx context.Context, title string, activeAt entity.T
 }
 
 func (t taskUsecase) List(ctx context.Context, status string) ([]entity.Task, error) {
-	if (status != entity.Active && status != entity.Done) && status != "" {
+	if status != entity.Active && status != entity.Done && status != "" {
 		return nil, ErrInvalidStatus
-	} else if status == "" {
-		status = entity.Active
+	}
+
+	if status == "" {
+		status = defaultStatus
 	}
 
 	tasks, err := t.repo.List(ctx, status, time.Now())
@@ -71,7 +73,7 @@ func (t taskUsecase) List(ctx context.Context, status string) ([]entity.Task, er
 
 	for i := range tasks {
 		if tasks[i].ActiveAt.Time().Weekday() == time.Saturday || tasks[i].ActiveAt.Time().Weekday() == time.Sunday {
-			tasks[i].Title = "ВЫХОДНОЙ - " + tasks[i].Title
+			tasks[i].Title = weekendTitlePrefix + tasks[i].Title
 		}
 	}
 
