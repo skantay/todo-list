@@ -14,7 +14,7 @@ func (t taskRoutes) respondError(c *gin.Context, code int) {
 	c.JSON(code, gin.H{"error": http.StatusText(code)})
 }
 
-func (t taskRoutes) handleCreateError(c *gin.Context, err error) {
+func (t taskRoutes) handleError(c *gin.Context, err error) {
 	switch {
 	case errors.Is(err, entity.ErrAlreadyExists) || errors.Is(err, entity.ErrTaskNotFound):
 		t.respondError(c, http.StatusNotFound)

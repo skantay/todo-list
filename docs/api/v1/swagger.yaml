@@ -45,12 +45,8 @@ paths:
             type: array
         "400":
           description: Bad Request
-          schema:
-            type: string
         "500":
           description: Internal Server Error
-          schema:
-            type: string
       summary: List tasks
     post:
       consumes:
@@ -72,12 +68,8 @@ paths:
             $ref: '#/definitions/v1.resp'
         "400":
           description: Bad Request
-          schema:
-            type: string
         "500":
           description: Internal Server Error
-          schema:
-            type: string
       summary: Create task
   /tasks/{id}:
     delete:
@@ -91,16 +83,10 @@ paths:
       responses:
         "204":
           description: No Content
-          schema:
-            type: string
         "400":
           description: Bad Request
-          schema:
-            type: string
         "500":
           description: Internal Server Error
-          schema:
-            type: string
       summary: Delete task
     put:
       consumes:
@@ -123,16 +109,10 @@ paths:
       responses:
         "204":
           description: No Content
-          schema:
-            type: string
         "400":
           description: Bad Request
-          schema:
-            type: string
         "500":
           description: Internal Server Error
-          schema:
-            type: string
       summary: Update task
   /tasks/{id}/done:
     put:
@@ -146,15 +126,9 @@ paths:
       responses:
         "204":
           description: No Content
-          schema:
-            type: string
         "400":
           description: Bad Request
-          schema:
-            type: string
         "500":
           description: Internal Server Error
-          schema:
-            type: string
       summary: Mark task as done
 swagger: "2.0"

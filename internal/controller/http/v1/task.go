@@ -54,8 +54,8 @@ type resp struct {
 // @Param status query string false "Status of the tasks (active, done)"
 // @Produce json
 // @Success 200 {array} entity.Task
-// @Failure 400 {string} string "Bad Request"
-// @Failure 500 {string} string "Internal Server Error"
+// @Failure 400
+// @Failure 500
 // @Router /tasks [get]
 func (t taskRoutes) list(c *gin.Context) {
 	status := getStatus(c)
@@ -63,7 +63,7 @@ func (t taskRoutes) list(c *gin.Context) {
 	tasks, err := t.taskUsecase.List(c.Request.Context(), status)
 	if err != nil {
 		t.log.Error("", "error", err)
-		t.handleCreateError(c, err)
+		t.handleError(c, err)
 
 		return
 	}
@@ -85,15 +85,15 @@ func getStatus(c *gin.Context) string {
 // @Produce json
 // @Param requestTask body requestTask true "Task details"
 // @Success 201 {object} resp
-// @Failure 400 {string} string "Bad Request"
-// @Failure 500 {string} string "Internal Server Error"
+// @Failure 400
+// @Failure 500
 // @Router /tasks [post]
 func (t taskRoutes) create(c *gin.Context) {
 	var req requestTask
 
 	if err := c.BindJSON(&req); err != nil {
 		t.log.Error("", "error", err)
-		t.handleCreateError(c, err)
+		t.handleError(c, err)
 
 		return
 	}
@@ -101,7 +101,7 @@ func (t taskRoutes) create(c *gin.Context) {
 	id, err := t.taskUsecase.Create(c.Request.Context(), req.Title, req.ActiveAt)
 	if err != nil {
 		t.log.Error("", "error", err)
-		t.handleCreateError(c, err)
+		t.handleError(c, err)
 
 		return
 	}
@@ -119,16 +119,16 @@ func (t taskRoutes) create(c *gin.Context) {
 // @Produce json
 // @Param id path string true "Task ID"
 // @Param requestTask body requestTask true "Task details"
-// @Success 204 {string} string "No Content"
-// @Failure 400 {string} string "Bad Request"
-// @Failure 500 {string} string "Internal Server Error"
+// @Success 204
+// @Failure 400
+// @Failure 500
 // @Router /tasks/{id} [put]
 func (t taskRoutes) update(c *gin.Context) {
 	var req requestTask
 
 	if err := c.BindJSON(&req); err != nil {
 		t.log.Error("", "error", err)
-		t.handleCreateError(c, err)
+		t.handleError(c, err)
 
 		return
 	}
@@ -140,7 +140,7 @@ func (t taskRoutes) update(c *gin.Context) {
 
 	if err := t.taskUsecase.UpdateTask(c.Request.Context(), task); err != nil {
 		t.log.Error("", "error", err)
-		t.handleCreateError(c, err)
+		t.handleError(c, err)
 
 		return
 	}
@@ -151,16 +151,16 @@ func (t taskRoutes) update(c *gin.Context) {
 // @Summary Delete task
 // @Description Delete an existing task based on its ID
 // @Param id path string true "Task ID"
-// @Success 204 {string} string "No Content"
-// @Failure 400 {string} string "Bad Request"
-// @Failure 500 {string} string "Internal Server Error"
+// @Success 204
+// @Failure 400
+// @Failure 500
 // @Router /tasks/{id} [delete]
 func (t taskRoutes) delete(c *gin.Context) {
 	id := c.Param("id")
 
 	if err := t.taskUsecase.Delete(c.Request.Context(), id); err != nil {
 		t.log.Error("", "error", err)
-		t.handleCreateError(c, err)
+		t.handleError(c, err)
 
 		return
 	}
@@ -171,16 +171,16 @@ func (t taskRoutes) delete(c *gin.Context) {
 // @Summary Mark task as done
 // @Description Mark an existing task as done based on its ID
 // @Param id path string true "Task ID"
-// @Success 204 {string} string "No Content"
-// @Failure 400 {string} string "Bad Request"
-// @Failure 500 {string} string "Internal Server Error"
+// @Success 204
+// @Failure 400
+// @Failure 500
 // @Router /tasks/{id}/done [put]
 func (t taskRoutes) markDone(c *gin.Context) {
 	id := c.Param("id")
 
 	if err := t.taskUsecase.MarkTaskDone(c.Request.Context(), id); err != nil {
 		t.log.Error("", "error", err)
-		t.handleCreateError(c, err)
+		t.handleError(c, err)
 
 		return
 	}
