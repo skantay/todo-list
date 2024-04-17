@@ -6,10 +6,8 @@ import (
 	"net/http"
 
 	"github.com/skantay/todo-list/internal/entity"
-	_ "github.com/skantay/todo-list/docs/api/v1"
 
 	"github.com/gin-gonic/gin"
-
 )
 
 type taskUsecase interface {
@@ -45,6 +43,10 @@ func newTaskRoutes(router *gin.RouterGroup, taskUsecase taskUsecase, log *slog.L
 type requestTask struct {
 	Title    string          `json:"title" binding:"required"`
 	ActiveAt entity.TaskDate `json:"activeAt" binding:"required"`
+}
+
+type resp struct {
+	ID string `json:"id"`
 }
 
 // @Summary List tasks
@@ -102,10 +104,6 @@ func (t taskRoutes) create(c *gin.Context) {
 		t.handleCreateError(c, err)
 
 		return
-	}
-
-	type resp struct {
-		ID string `json:"id"`
 	}
 
 	response := resp{
