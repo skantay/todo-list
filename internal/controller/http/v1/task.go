@@ -106,7 +106,7 @@ func (t taskRoutes) create(c *gin.Context) {
 
 	id, err := t.taskUsecase.Create(c.Request.Context(), req.Title, req.ActiveAt)
 	if err != nil {
-		if errors.Is(err, entity.ErrInvalidTitle) {
+		if errors.Is(err, entity.ErrInvalidTitle) || errors.Is(err, entity.ErrInvalidID) {
 			t.log.Warn(http.StatusText(http.StatusBadRequest), "error", err)
 			c.Status(http.StatusBadRequest)
 		} else if errors.Is(err, entity.ErrAlreadyExists) {
@@ -155,9 +155,9 @@ func (t taskRoutes) update(c *gin.Context) {
 	task.ID = id
 
 	if err := t.taskUsecase.UpdateTask(c.Request.Context(), task); err != nil {
-		if errors.Is(err, entity.ErrAlreadyExists) {
-			t.log.Warn(http.StatusText(http.StatusNotFound), "error", err)
-			c.Status(http.StatusNotFound)
+		if errors.Is(err, entity.ErrAlreadyExists) || errors.Is(err, entity.ErrInvalidID) {
+			t.log.Warn(http.StatusText(http.StatusBadRequest), "error", err)
+			c.Status(http.StatusBadRequest)
 		} else if errors.Is(err, entity.ErrTaskNotFound) {
 			t.log.Warn(http.StatusText(http.StatusNotFound), "error", err)
 			c.Status(http.StatusNotFound)
@@ -184,7 +184,7 @@ func (t taskRoutes) delete(c *gin.Context) {
 	id := c.Param("id")
 
 	if err := t.taskUsecase.Delete(c.Request.Context(), id); err != nil {
-		if errors.Is(err, entity.ErrAlreadyExists) {
+		if errors.Is(err, entity.ErrAlreadyExists) || errors.Is(err, entity.ErrInvalidID) {
 			t.log.Warn(http.StatusText(http.StatusBadRequest), "error", err)
 			c.Status(http.StatusBadRequest)
 		} else if errors.Is(err, entity.ErrTaskNotFound) {
@@ -205,6 +205,7 @@ func (t taskRoutes) delete(c *gin.Context) {
 // @Description Mark an existing task as done based on its ID
 // @Param id path string true "Task ID"
 // @Success 204
+// @Failure 400
 // @Failure 404
 // @Failure 500
 // @Router /api/v1/todo-list/tasks/{id}/done [put]
@@ -212,9 +213,12 @@ func (t taskRoutes) markDone(c *gin.Context) {
 	id := c.Param("id")
 
 	if err := t.taskUsecase.MarkTaskDone(c.Request.Context(), id); err != nil {
-		if errors.Is(err, entity.ErrTaskNotFound) {
+		if errors.Is(err, entity.ErrTaskNotFound) || errors.Is(err, entity.ErrAlreadyExists) {
 			t.log.Warn(http.StatusText(http.StatusNotFound), "error", err)
 			c.Status(http.StatusNotFound)
+		} else if errors.Is(err, entity.ErrInvalidID) {
+			t.log.Warn(http.StatusText(http.StatusBadRequest), "error", err)
+			c.Status(http.StatusBadRequest)
 		} else {
 			t.log.Warn(http.StatusText(http.StatusInternalServerError), "error", err)
 			c.Status(http.StatusInternalServerError)

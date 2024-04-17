@@ -90,7 +90,7 @@ func (t taskRepository) Update(ctx context.Context, task entity.Task) error {
 	// Конвертируем строку ID в тип ObjectID
 	id, err := primitive.ObjectIDFromHex(task.ID)
 	if err != nil {
-		return fmt.Errorf("failed to convert ObjectId: %w", err)
+		return entity.ErrInvalidID
 	}
 
 	// Проверка на наличие задачи с такими же полями
@@ -129,7 +129,7 @@ func (t taskRepository) MarkDone(ctx context.Context, id string) error {
 	// Конвертируем строку ID в тип ObjectID
 	idObj, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
-		return fmt.Errorf("failed to convert ObjectId: %w", err)
+		return entity.ErrInvalidID
 	}
 
 	filter := bson.M{"_id": idObj}
@@ -157,7 +157,7 @@ func (t taskRepository) Delete(ctx context.Context, id string) error {
 	// Конвертируем строку ID в тип ObjectID
 	idObj, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
-		return fmt.Errorf("failed to convert ObjectId: %w", err)
+		return entity.ErrInvalidID
 	}
 
 	filter := bson.M{"_id": idObj}
@@ -179,7 +179,9 @@ func (t taskRepository) findTask(ctx context.Context, task entity.Task) (bool, e
 	filter := bson.M{
 		"title":    task.Title,
 		"activeAt": task.ActiveAt.Time(),
+		"status":   task.Status,
 	}
+
 	t.log.Debug("", "task", filter)
 
 	result := t.collection.FindOne(ctx, filter)

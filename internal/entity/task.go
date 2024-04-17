@@ -15,6 +15,7 @@ var (
 	ErrTaskNotFound  = errors.New("task does not exist")
 	ErrInvalidTitle  = errors.New("invalid title")
 	ErrInvalidStatus = errors.New("invalid status")
+	ErrInvalidID     = errors.New("invalid id")
 )
 
 const (
