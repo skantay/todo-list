@@ -30,11 +30,9 @@ func newTaskRepository(collection *mongo.Collection, log *slog.Logger) taskRepos
 func (t taskRepository) Create(ctx context.Context, task entity.Task) (string, error) {
 	existingTask, err := t.findTask(ctx, task.Title, task.ActiveAt)
 	if err != nil {
-		t.log.Error(err.Error())
 		return "", fmt.Errorf("failed to check task uniqueness: %w", err)
 	}
 	if existingTask {
-		t.log.Debug(entity.ErrAlreadyExists.Error())
 		return "", entity.ErrAlreadyExists
 	}
 
@@ -46,7 +44,6 @@ func (t taskRepository) Create(ctx context.Context, task entity.Task) (string, e
 
 	result, err := t.collection.InsertOne(ctx, taskBSON)
 	if err != nil {
-		t.log.Error(err.Error())
 		return "", fmt.Errorf("failed to insert a task into db: %w", err)
 	}
 
@@ -128,17 +125,14 @@ func (t taskRepository) List(ctx context.Context, status string, now time.Time) 
 func (t taskRepository) Update(ctx context.Context, task entity.Task) error {
 	existingTask, err := t.findTask(ctx, task.Title, task.ActiveAt)
 	if err != nil {
-		t.log.Error(err.Error())
 		return fmt.Errorf("failed to check task uniqueness: %w", err)
 	}
 	if existingTask {
-		t.log.Debug(entity.ErrAlreadyExists.Error(), "task id", task.ID)
 		return entity.ErrAlreadyExists
 	}
 
 	id, err := primitive.ObjectIDFromHex(task.ID)
 	if err != nil {
-		t.log.Error(err.Error())
 		return fmt.Errorf("failed to convert ObjectId: %w", err)
 	}
 
@@ -153,12 +147,10 @@ func (t taskRepository) Update(ctx context.Context, task entity.Task) error {
 
 	result, err := t.collection.UpdateOne(ctx, filter, update)
 	if err != nil {
-		t.log.Error(err.Error())
 		return fmt.Errorf("update failed: %w", err)
 	}
 
 	if result.ModifiedCount == 0 {
-		t.log.Debug(entity.ErrTaskNotFound.Error(), "task id", task.ID)
 		return entity.ErrTaskNotFound
 	}
 

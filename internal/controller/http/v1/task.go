@@ -50,17 +50,14 @@ type requestTask struct {
 
 func (t taskRoutes) list(c *gin.Context) {
 	status := getStatus(c)
-	t.log.Debug(status)
 
 	tasks, err := t.taskUsecase.List(c.Request.Context(), status)
 	if err != nil {
 		if errors.Is(err, usecase.ErrInvalidStatus) {
-			t.log.Error(err.Error())
 			respondError(c, http.StatusBadRequest)
 
 			return
 		}
-		t.log.Error(err.Error())
 		respondError(c, http.StatusInternalServerError)
 
 		return

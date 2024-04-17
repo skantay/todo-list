@@ -6,7 +6,11 @@ import (
 )
 
 func InitSlog() *slog.Logger {
-	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
+	opts := &slog.HandlerOptions{
+		Level: slog.LevelDebug,
+	}
+	handler := slog.NewTextHandler(os.Stdout, opts)
+	logger := slog.New(handler)
+
 	return logger
 }
-
