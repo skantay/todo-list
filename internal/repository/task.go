@@ -27,8 +27,9 @@ func newTaskRepository(collection *mongo.Collection, log *slog.Logger) taskRepos
 	}
 }
 
+// Create создаёт задачу в коллекции.
 func (t taskRepository) Create(ctx context.Context, task entity.Task) (string, error) {
-	existingTask, err := t.findTask(ctx, task.Title, task.ActiveAt)
+	existingTask, err := t.findTask(ctx, task)
 	if err != nil {
 		return "", fmt.Errorf("failed to check task uniqueness: %w", err)
 	}
@@ -36,13 +37,9 @@ func (t taskRepository) Create(ctx context.Context, task entity.Task) (string, e
 		return "", entity.ErrAlreadyExists
 	}
 
-	taskBSON := bson.M{
-		"title":    task.Title,
-		"activeAt": task.ActiveAt.Time(),
-		"status":   task.Status,
-	}
+	task.ID = primitive.NewObjectID().Hex()
 
-	result, err := t.collection.InsertOne(ctx, taskBSON)
+	result, err := t.collection.InsertOne(ctx, task)
 	if err != nil {
 		return "", fmt.Errorf("failed to insert a task into db: %w", err)
 	}
@@ -55,34 +52,7 @@ func (t taskRepository) Create(ctx context.Context, task entity.Task) (string, e
 	return oidResult.Hex(), nil
 }
 
-func (t taskRepository) findTask(ctx context.Context, title string, activeAt entity.TaskDate) (bool, error) {
-	filter := bson.M{
-		"title":    title,
-		"activeAt": activeAt.Time(),
-	}
-
-	result := t.collection.FindOne(ctx, filter)
-	if err := result.Err(); err != nil {
-		if errors.Is(err, mongo.ErrNoDocuments) {
-			return false, nil
-		}
-		return false, fmt.Errorf("failed to find task: %w", err)
-	}
-
-	if result.Err() == mongo.ErrNoDocuments {
-		return false, nil
-	}
-
-	return true, nil
-}
-
-type sTask struct {
-	ID       primitive.ObjectID `bson:"_id"`
-	ActiveAt time.Time
-	Title    string
-	Status   string
-}
-
+// List возвращает список задач с колекции на основе указанных параметров(status, now time.Time).
 func (t taskRepository) List(ctx context.Context, status string, now time.Time) ([]entity.Task, error) {
 	filter := bson.M{
 		"status":   status,
@@ -100,19 +70,12 @@ func (t taskRepository) List(ctx context.Context, status string, now time.Time) 
 	var tasks []entity.Task
 
 	for cursor.Next(ctx) {
-		var task sTask
+		var task entity.Task
 		if err := cursor.Decode(&task); err != nil {
 			return nil, fmt.Errorf("failed to decode task: %w", err)
 		}
 
-		taskEntity := entity.Task{
-			ID:       task.ID.Hex(),
-			Status:   task.Status,
-			ActiveAt: entity.TaskDate(task.ActiveAt),
-			Title:    task.Title,
-		}
-
-		tasks = append(tasks, taskEntity)
+		tasks = append(tasks, task)
 	}
 
 	if err := cursor.Err(); err != nil {
@@ -122,18 +85,22 @@ func (t taskRepository) List(ctx context.Context, status string, now time.Time) 
 	return tasks, nil
 }
 
+// Update обновляет title и activeAt задачи в колекции на основе указанных параметров(task entity.Task).
 func (t taskRepository) Update(ctx context.Context, task entity.Task) error {
-	existingTask, err := t.findTask(ctx, task.Title, task.ActiveAt)
+	// Конвертируем строку ID в тип ObjectID
+	id, err := primitive.ObjectIDFromHex(task.ID)
+	if err != nil {
+		return fmt.Errorf("failed to convert ObjectId: %w", err)
+	}
+
+	// Проверка на наличие задачи с такими же полями
+	// Если присутсвуют тогда возврщает entity.ErrAlreadyExists
+	existingTask, err := t.findTask(ctx, task)
 	if err != nil {
 		return fmt.Errorf("failed to check task uniqueness: %w", err)
 	}
 	if existingTask {
 		return entity.ErrAlreadyExists
-	}
-
-	id, err := primitive.ObjectIDFromHex(task.ID)
-	if err != nil {
-		return fmt.Errorf("failed to convert ObjectId: %w", err)
 	}
 
 	filter := bson.M{"_id": id}
@@ -157,13 +124,16 @@ func (t taskRepository) Update(ctx context.Context, task entity.Task) error {
 	return nil
 }
 
+// MarkDone маркирует задачу завершенной в колекции на основе указанных параметров(id).
 func (t taskRepository) MarkDone(ctx context.Context, id string) error {
+	// Конвертируем строку ID в тип ObjectID
 	idObj, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
 		return fmt.Errorf("failed to convert ObjectId: %w", err)
 	}
 
 	filter := bson.M{"_id": idObj}
+
 	update := bson.M{
 		"$set": bson.M{
 			"status": entity.Done,
@@ -182,11 +152,14 @@ func (t taskRepository) MarkDone(ctx context.Context, id string) error {
 	return nil
 }
 
+// Delete удаляет задачу в колекции на основе указанных параметров(id).
 func (t taskRepository) Delete(ctx context.Context, id string) error {
+	// Конвертируем строку ID в тип ObjectID
 	idObj, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
 		return fmt.Errorf("failed to convert ObjectId: %w", err)
 	}
+
 	filter := bson.M{"_id": idObj}
 
 	result, err := t.collection.DeleteOne(ctx, filter)
@@ -199,4 +172,23 @@ func (t taskRepository) Delete(ctx context.Context, id string) error {
 	}
 
 	return nil
+}
+
+// findTask ищет задачу в коллекции на основе указанных параметров(title, activeAt).
+func (t taskRepository) findTask(ctx context.Context, task entity.Task) (bool, error) {
+	filter := bson.M{
+		"title":    task.Title,
+		"activeAt": task.ActiveAt.Time(),
+	}
+	t.log.Debug("", "task", toFind)
+
+	result := t.collection.FindOne(ctx, filter)
+	if err := result.Err(); err != nil {
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return false, nil
+		}
+		return false, fmt.Errorf("failed to find task: %w", err)
+	}
+
+	return true, nil
 }

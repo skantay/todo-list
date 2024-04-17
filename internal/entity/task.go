@@ -5,6 +5,9 @@ import (
 	"errors"
 	"fmt"
 	"time"
+
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 var (
@@ -64,4 +67,40 @@ func (td *TaskDate) UnmarshalJSON(data []byte) error {
 
 func (td TaskDate) MarshalJSON() ([]byte, error) {
 	return []byte(fmt.Sprintf(`"%s"`, time.Time(td).Format(dateFormat))), nil
+}
+
+func (t *Task) UnmarshalBSON(data []byte) error {
+	var rawTask struct {
+		ID       primitive.ObjectID `bson:"_id"`
+		Title    string             `bson:"title"`
+		ActiveAt time.Time          `bson:"activeAt"`
+		Status   string             `bson:"status"`
+	}
+	if err := bson.Unmarshal(data, &rawTask); err != nil {
+		return fmt.Errorf("failed to unmarshal Task: %w", err)
+	}
+	t.ID = rawTask.ID.Hex()
+	t.Title = rawTask.Title
+	t.ActiveAt = TaskDate(rawTask.ActiveAt)
+	t.Status = rawTask.Status
+	return nil
+}
+
+func (t Task) MarshalBSON() ([]byte, error) {
+	id, err := primitive.ObjectIDFromHex(t.ID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to convert ObjectId: %w", err)
+	}
+
+	return bson.Marshal(struct {
+		ID       primitive.ObjectID `bson:"_id"`
+		Title    string             `bson:"title"`
+		ActiveAt time.Time          `bson:"activeAt"`
+		Status   string             `bson:"status"`
+	}{
+		ID:       id,
+		Title:    t.Title,
+		ActiveAt: time.Time(t.ActiveAt),
+		Status:   t.Status,
+	})
 }

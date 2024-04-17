@@ -43,6 +43,7 @@ func newTaskUsecase(taskRepo taskRepo, log *slog.Logger) taskUsecase {
 }
 
 func (t taskUsecase) Create(ctx context.Context, title string, activeAt entity.TaskDate) (string, error) {
+	// title не может быть больше maxTitleLen
 	if utf8.RuneCountInString(title) > maxTitleLen {
 		return "", ErrInvalidTitle
 	}
@@ -58,10 +59,12 @@ func (t taskUsecase) Create(ctx context.Context, title string, activeAt entity.T
 }
 
 func (t taskUsecase) List(ctx context.Context, status string) ([]entity.Task, error) {
+	// Статусы кроме active, done считаются invalid
 	if status != entity.Active && status != entity.Done && status != "" {
 		return nil, ErrInvalidStatus
 	}
 
+	// По умолчанию статус active
 	if status == "" {
 		status = defaultStatus
 	}
@@ -72,6 +75,7 @@ func (t taskUsecase) List(ctx context.Context, status string) ([]entity.Task, er
 	}
 
 	for i := range tasks {
+		// Если дни задачи == Saturday & Sunday, тогда к title добавляем префикс
 		if tasks[i].ActiveAt.Time().Weekday() == time.Saturday || tasks[i].ActiveAt.Time().Weekday() == time.Sunday {
 			tasks[i].Title = weekendTitlePrefix + tasks[i].Title
 		}

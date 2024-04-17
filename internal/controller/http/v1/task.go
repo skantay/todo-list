@@ -48,17 +48,21 @@ type requestTask struct {
 	ActiveAt entity.TaskDate `json:"activeAt" binding:"required"`
 }
 
+// @Summary List tasks
+// @Description Get a list of tasks based on the provided status
+// @Param status query string false "Status of the tasks (active, done)"
+// @Produce json
+// @Success 200 {array} entity.Task
+// @Failure 400 {string} string "Bad Request"
+// @Failure 500 {string} string "Internal Server Error"
+// @Router /tasks [get]
 func (t taskRoutes) list(c *gin.Context) {
 	status := getStatus(c)
 
 	tasks, err := t.taskUsecase.List(c.Request.Context(), status)
 	if err != nil {
-		if errors.Is(err, usecase.ErrInvalidStatus) {
-			respondError(c, http.StatusBadRequest)
-
-			return
-		}
-		respondError(c, http.StatusInternalServerError)
+		t.log.Error("", "error", err)
+		handleCreateError(c, err)
 
 		return
 	}
@@ -74,25 +78,29 @@ func getStatus(c *gin.Context) string {
 	return c.Query("status")
 }
 
+// @Summary Create task
+// @Description Create a new task with the provided title and activeAt date
+// @Accept json
+// @Produce json
+// @Param requestTask body requestTask true "Task details"
+// @Success 201 {object} resp
+// @Failure 400 {string} string "Bad Request"
+// @Failure 500 {string} string "Internal Server Error"
+// @Router /tasks [post]
 func (t taskRoutes) create(c *gin.Context) {
 	var req requestTask
 
 	if err := c.BindJSON(&req); err != nil {
-
-		respondError(c, http.StatusBadRequest)
+		t.log.Error("", "error", err)
+		handleCreateError(c, err)
 
 		return
 	}
 
 	id, err := t.taskUsecase.Create(c.Request.Context(), req.Title, req.ActiveAt)
 	if err != nil {
-		if errors.Is(err, entity.ErrAlreadyExists) {
-			respondError(c, http.StatusNotFound)
-		} else if errors.Is(err, usecase.ErrInvalidTitle) {
-			respondError(c, http.StatusBadRequest)
-		} else {
-			respondError(c, http.StatusInternalServerError)
-		}
+		t.log.Error("", "error", err)
+		handleCreateError(c, err)
 
 		return
 	}
@@ -105,17 +113,25 @@ func (t taskRoutes) create(c *gin.Context) {
 		ID: id,
 	}
 
-	c.Header("Content-Type", "application/json")
-
 	c.JSON(http.StatusCreated, response)
 }
 
+// @Summary Update task
+// @Description Update the details of an existing task
+// @Accept json
+// @Produce json
+// @Param id path string true "Task ID"
+// @Param requestTask body requestTask true "Task details"
+// @Success 204 {string} string "No Content"
+// @Failure 400 {string} string "Bad Request"
+// @Failure 500 {string} string "Internal Server Error"
+// @Router /tasks/{id} [put]
 func (t taskRoutes) update(c *gin.Context) {
 	var req requestTask
 
 	if err := c.BindJSON(&req); err != nil {
-
-		respondError(c, http.StatusBadRequest)
+		t.log.Error("", "error", err)
+		handleCreateError(c, err)
 
 		return
 	}
@@ -126,55 +142,52 @@ func (t taskRoutes) update(c *gin.Context) {
 	task.ID = id
 
 	if err := t.taskUsecase.UpdateTask(c.Request.Context(), task); err != nil {
-		if errors.Is(err, entity.ErrTaskNotFound) {
-			c.Status(http.StatusNotFound)
-		} else if errors.Is(err, primitive.ErrInvalidHex) {
-			c.Status(http.StatusBadRequest)
-		} else {
-			c.Status(http.StatusInternalServerError)
-		}
+		t.log.Error("", "error", err)
+		handleCreateError(c, err)
 
 		return
 	}
 
 	c.Status(http.StatusNoContent)
-	return
 }
 
+// @Summary Delete task
+// @Description Delete an existing task based on its ID
+// @Param id path string true "Task ID"
+// @Success 204 {string} string "No Content"
+// @Failure 400 {string} string "Bad Request"
+// @Failure 500 {string} string "Internal Server Error"
+// @Router /tasks/{id} [delete]
 func (t taskRoutes) delete(c *gin.Context) {
 	id := c.Param("id")
 
 	if err := t.taskUsecase.Delete(c.Request.Context(), id); err != nil {
-		if errors.Is(err, entity.ErrTaskNotFound) {
-			c.Status(http.StatusNotFound)
-		} else if errors.Is(err, primitive.ErrInvalidHex) {
-			c.Status(http.StatusBadRequest)
-		} else {
-			c.Status(http.StatusInternalServerError)
-		}
+		t.log.Error("", "error", err)
+		handleCreateError(c, err)
 
 		return
 	}
 
 	c.Status(http.StatusNoContent)
-	return
 }
 
+// @Summary Mark task as done
+// @Description Mark an existing task as done based on its ID
+// @Param id path string true "Task ID"
+// @Success 204 {string} string "No Content"
+// @Failure 400 {string} string "Bad Request"
+// @Failure 500 {string} string "Internal Server Error"
+// @Router /tasks/{id}/done [put]
+func (t taskRoutes) markDone(c *gin.Con
 func (t taskRoutes) markDone(c *gin.Context) {
 	id := c.Param("id")
 
 	if err := t.taskUsecase.MarkTaskDone(c.Request.Context(), id); err != nil {
-		if errors.Is(err, entity.ErrTaskNotFound) {
-			c.Status(http.StatusNotFound)
-		} else if errors.Is(err, primitive.ErrInvalidHex) {
-			c.Status(http.StatusBadRequest)
-		} else {
-			c.Status(http.StatusInternalServerError)
-		}
+		t.log.Error("", "error", err)
+		handleCreateError(c, err)
 
 		return
 	}
 
 	c.Status(http.StatusNoContent)
-	return
 }
