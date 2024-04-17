@@ -26,7 +26,7 @@ definitions:
 info:
   contact: {}
 paths:
-  /tasks:
+  /api/v1/todo-list/tasks:
     get:
       description: Get a list of tasks based on the provided status
       parameters:
@@ -73,7 +73,7 @@ paths:
         "500":
           description: Internal Server Error
       summary: Create task
-  /tasks/{id}:
+  /api/v1/todo-list/tasks/{id}:
     delete:
       description: Delete an existing task based on its ID
       parameters:
@@ -120,7 +120,7 @@ paths:
         "500":
           description: Internal Server Error
       summary: Update task
-  /tasks/{id}/done:
+  /api/v1/todo-list/tasks/{id}/done:
     put:
       description: Mark an existing task as done based on its ID
       parameters:

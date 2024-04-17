@@ -15,7 +15,7 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
-        "/tasks": {
+        "/api/v1/todo-list/tasks": {
             "get": {
                 "description": "Get a list of tasks based on the provided status",
                 "produces": [
@@ -87,7 +87,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/tasks/{id}": {
+        "/api/v1/todo-list/tasks/{id}": {
             "put": {
                 "description": "Update the details of an existing task",
                 "consumes": [
@@ -158,7 +158,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/tasks/{id}/done": {
+        "/api/v1/todo-list/tasks/{id}/done": {
             "put": {
                 "description": "Mark an existing task as done based on its ID",
                 "summary": "Mark task as done",
