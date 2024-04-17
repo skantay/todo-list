@@ -68,6 +68,8 @@ paths:
             $ref: '#/definitions/v1.resp'
         "400":
           description: Bad Request
+        "404":
+          description: Not Found
         "500":
           description: Internal Server Error
       summary: Create task
