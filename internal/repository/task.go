@@ -180,7 +180,7 @@ func (t taskRepository) findTask(ctx context.Context, task entity.Task) (bool, e
 		"title":    task.Title,
 		"activeAt": task.ActiveAt.Time(),
 	}
-	t.log.Debug("", "task", toFind)
+	t.log.Debug("", "task", filter)
 
 	result := t.collection.FindOne(ctx, filter)
 	if err := result.Err(); err != nil {

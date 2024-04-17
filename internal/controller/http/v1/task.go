@@ -2,15 +2,12 @@ package v1
 
 import (
 	"context"
-	"errors"
 	"log/slog"
 	"net/http"
 
 	"github.com/skantay/todo-list/internal/entity"
-	"github.com/skantay/todo-list/internal/usecase"
 
 	"github.com/gin-gonic/gin"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 type taskUsecase interface {
@@ -62,7 +59,7 @@ func (t taskRoutes) list(c *gin.Context) {
 	tasks, err := t.taskUsecase.List(c.Request.Context(), status)
 	if err != nil {
 		t.log.Error("", "error", err)
-		handleCreateError(c, err)
+		t.handleCreateError(c, err)
 
 		return
 	}
@@ -92,7 +89,7 @@ func (t taskRoutes) create(c *gin.Context) {
 
 	if err := c.BindJSON(&req); err != nil {
 		t.log.Error("", "error", err)
-		handleCreateError(c, err)
+		t.handleCreateError(c, err)
 
 		return
 	}
@@ -100,7 +97,7 @@ func (t taskRoutes) create(c *gin.Context) {
 	id, err := t.taskUsecase.Create(c.Request.Context(), req.Title, req.ActiveAt)
 	if err != nil {
 		t.log.Error("", "error", err)
-		handleCreateError(c, err)
+		t.handleCreateError(c, err)
 
 		return
 	}
@@ -131,7 +128,7 @@ func (t taskRoutes) update(c *gin.Context) {
 
 	if err := c.BindJSON(&req); err != nil {
 		t.log.Error("", "error", err)
-		handleCreateError(c, err)
+		t.handleCreateError(c, err)
 
 		return
 	}
@@ -143,7 +140,7 @@ func (t taskRoutes) update(c *gin.Context) {
 
 	if err := t.taskUsecase.UpdateTask(c.Request.Context(), task); err != nil {
 		t.log.Error("", "error", err)
-		handleCreateError(c, err)
+		t.handleCreateError(c, err)
 
 		return
 	}
@@ -163,7 +160,7 @@ func (t taskRoutes) delete(c *gin.Context) {
 
 	if err := t.taskUsecase.Delete(c.Request.Context(), id); err != nil {
 		t.log.Error("", "error", err)
-		handleCreateError(c, err)
+		t.handleCreateError(c, err)
 
 		return
 	}
@@ -178,13 +175,12 @@ func (t taskRoutes) delete(c *gin.Context) {
 // @Failure 400 {string} string "Bad Request"
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /tasks/{id}/done [put]
-func (t taskRoutes) markDone(c *gin.Con
 func (t taskRoutes) markDone(c *gin.Context) {
 	id := c.Param("id")
 
 	if err := t.taskUsecase.MarkTaskDone(c.Request.Context(), id); err != nil {
 		t.log.Error("", "error", err)
-		handleCreateError(c, err)
+		t.handleCreateError(c, err)
 
 		return
 	}

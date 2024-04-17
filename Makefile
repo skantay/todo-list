@@ -5,4 +5,4 @@ compose-down: ### Down docker-compose
 	docker-compose down --remove-orphans
 
 swag-gen:
-	swag init -g ./cmd/main.go -o ./docs/api/v1/
+	swag init -g ./cmd/app/main.go -o ./docs/api/v1/
