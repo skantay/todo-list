@@ -5,10 +5,7 @@ import (
 	"os"
 )
 
-func InitSlog() *slog.Logger {
-	opts := &slog.HandlerOptions{
-		Level: slog.LevelWarn,
-	}
+func InitSlog(opts *slog.HandlerOptions) *slog.Logger {
 	handler := slog.NewTextHandler(os.Stdout, opts)
 	logger := slog.New(handler)
 

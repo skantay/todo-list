@@ -54,9 +54,17 @@ func (t taskRepository) Create(ctx context.Context, task entity.Task) (string, e
 
 // List возвращает список задач с колекции на основе указанных параметров(status, now time.Time).
 func (t taskRepository) List(ctx context.Context, status string, now time.Time) ([]entity.Task, error) {
-	filter := bson.M{
-		"status":   status,
-		"activeAt": bson.M{"$lte": now},
+	var filter bson.M
+
+	if status == entity.Active {
+		filter = bson.M{
+			"status":   status,
+			"activeAt": bson.M{"$lte": now},
+		}
+	} else {
+		filter = bson.M{
+			"status": status,
+		}
 	}
 
 	sort := bson.D{{"activeAt", 1}}

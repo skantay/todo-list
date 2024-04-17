@@ -10,6 +10,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
+// Определение общих ошибок для сущности "Задача"
 var (
 	ErrAlreadyExists = errors.New("task already exists")
 	ErrTaskNotFound  = errors.New("task does not exist")
@@ -18,12 +19,14 @@ var (
 	ErrInvalidID     = errors.New("invalid id")
 )
 
+// Константы для статусов задачи и формата даты
 const (
 	Active     = "active"
 	Done       = "done"
 	dateFormat = "2006-01-02"
 )
 
+// TaskDate определяет пользовательский тип для даты задачи
 type TaskDate time.Time
 
 type Task struct {
@@ -33,6 +36,8 @@ type Task struct {
 	Status   string   `json:"-"`
 }
 
+// NewTask создает новую задачу
+// Со значением status="active"
 func NewTask(title string, activeAt TaskDate) Task {
 	t := Task{
 		Title:    title,
@@ -55,6 +60,7 @@ func (td TaskDate) Time() time.Time {
 	return time.Time(td)
 }
 
+// UnmarshalJSON разбирает JSON TaskDate
 func (td *TaskDate) UnmarshalJSON(data []byte) error {
 	var rawDate string
 	if err := json.Unmarshal(data, &rawDate); err != nil {
@@ -68,10 +74,12 @@ func (td *TaskDate) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+// MarshalJSON преобразует TaskDate в JSON
 func (td TaskDate) MarshalJSON() ([]byte, error) {
 	return []byte(fmt.Sprintf(`"%s"`, time.Time(td).Format(dateFormat))), nil
 }
 
+// UnmarshalBSON разбирает BSON Task
 func (t *Task) UnmarshalBSON(data []byte) error {
 	var rawTask struct {
 		ID       primitive.ObjectID `bson:"_id"`
@@ -89,6 +97,7 @@ func (t *Task) UnmarshalBSON(data []byte) error {
 	return nil
 }
 
+// MarshalBSON преобразует Task в BSON
 func (t Task) MarshalBSON() ([]byte, error) {
 	id, err := primitive.ObjectIDFromHex(t.ID)
 	if err != nil {

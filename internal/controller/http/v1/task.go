@@ -1,3 +1,4 @@
+// Пакет v1 предоставляет реализацию HTTP API для взаимодействия с задачами.
 package v1
 
 import (
@@ -11,6 +12,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// taskUsecase определяет методы бизнес-логики для работы с задачами.
 type taskUsecase interface {
 	Create(ctx context.Context, title string, activeAt entity.TaskDate) (string, error)
 	List(ctx context.Context, status string) ([]entity.Task, error)
@@ -19,36 +21,42 @@ type taskUsecase interface {
 	Delete(ctx context.Context, id string) error
 }
 
+// taskRoutes определяет маршруты и их обработчики для задач.
 type taskRoutes struct {
-	taskUsecase taskUsecase
-	log         *slog.Logger
+	taskUsecase taskUsecase  // Использование usecase-ов
+	log         *slog.Logger // Логгер
 }
 
+// newTaskRoutes регистрирует эндпоинты для задач.
 func newTaskRoutes(router *gin.RouterGroup, taskUsecase taskUsecase, log *slog.Logger) {
 	taskRoutes := taskRoutes{
 		taskUsecase: taskUsecase,
 		log:         log,
 	}
 
-	router.GET("/tasks", taskRoutes.list)
+	router.GET("/tasks", taskRoutes.list) // Получение списка задач
 
-	router.POST("/tasks", taskRoutes.create)
+	router.POST("/tasks", taskRoutes.create) // Создание задачи
 
-	router.PUT("/tasks/:id", taskRoutes.update)
+	router.PUT("/tasks/:id", taskRoutes.update) // Обновление задачи
 
-	router.DELETE("/tasks/:id", taskRoutes.delete)
+	router.DELETE("/tasks/:id", taskRoutes.delete) // Удаление задачи
 
-	router.PUT("/tasks/:id/done", taskRoutes.markDone)
+	router.PUT("/tasks/:id/done", taskRoutes.markDone) // Пометить задачу как выполненную
 }
 
+// requestTask определяет структуру тела запроса для создания или обновления задачи.
 type requestTask struct {
 	Title    string          `json:"title" binding:"required"`
 	ActiveAt entity.TaskDate `json:"activeAt" binding:"required"`
 }
 
+// resp определяет структуру ответа на успешное создание задачи.
 type resp struct {
 	ID string `json:"id"`
 }
+
+// list обрабатывает запрос на получение списка задач.
 
 // @Summary List tasks
 // @Description Get a list of tasks based on the provided status
@@ -80,9 +88,12 @@ func (t taskRoutes) list(c *gin.Context) {
 	c.JSON(http.StatusOK, tasks)
 }
 
+// getStatus извлекает статус из параметра запроса.
 func getStatus(c *gin.Context) string {
 	return c.Query("status")
 }
+
+// create обрабатывает запрос на создание новой задачи.
 
 // @Summary Create task
 // @Description Create a new task with the provided title and activeAt date
@@ -128,6 +139,8 @@ func (t taskRoutes) create(c *gin.Context) {
 	c.JSON(http.StatusCreated, response)
 }
 
+// update обрабатывает запрос на обновление существующей задачи.
+
 // @Summary Update task
 // @Description Update the details of an existing task
 // @Accept json
@@ -155,7 +168,7 @@ func (t taskRoutes) update(c *gin.Context) {
 	task.ID = id
 
 	if err := t.taskUsecase.UpdateTask(c.Request.Context(), task); err != nil {
-		if errors.Is(err, entity.ErrAlreadyExists) || errors.Is(err, entity.ErrInvalidID) {
+		if errors.Is(err, entity.ErrAlreadyExists) || errors.Is(err, entity.ErrInvalidID) || errors.Is(err, entity.ErrInvalidTitle) {
 			t.log.Warn(http.StatusText(http.StatusBadRequest), "error", err)
 			c.Status(http.StatusBadRequest)
 		} else if errors.Is(err, entity.ErrTaskNotFound) {
@@ -171,6 +184,8 @@ func (t taskRoutes) update(c *gin.Context) {
 
 	c.Status(http.StatusNoContent)
 }
+
+// delete обрабатывает запрос на удаление существующей задачи.
 
 // @Summary Delete task
 // @Description Delete an existing task based on its ID
@@ -200,6 +215,8 @@ func (t taskRoutes) delete(c *gin.Context) {
 
 	c.Status(http.StatusNoContent)
 }
+
+// markDone обрабатывает запрос на пометку существующей задачи как выполненной.
 
 // @Summary Mark task as done
 // @Description Mark an existing task as done based on its ID

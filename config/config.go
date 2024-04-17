@@ -6,6 +6,7 @@ import (
 	"github.com/spf13/viper"
 )
 
+// Config представляет конфигурацию приложения.
 type Config struct {
 	Server  Server  `yaml:"server"`
 	MongoDB MongoDB `yaml:"mongodb"`

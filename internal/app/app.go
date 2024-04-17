@@ -25,7 +25,7 @@ const (
 )
 
 func Run() error {
-	// Загружаем конфиг параметры
+	// Загрузка конфиг параметров
 	cfg, err := config.New(configPath)
 	if err != nil {
 		return fmt.Errorf("error getting config: %w", err)
@@ -41,18 +41,26 @@ func Run() error {
 		),
 	)
 
+	// Прокидываем контекст в MongoDB
 	ctx, cancel := context.WithTimeout(context.Background(), mongodb.DefaultTimeout)
 	defer cancel()
+
+	// Установка соединения с MongoDB
 	client, err := mongodb.Connect(ctx, options)
 	if err != nil {
 		return fmt.Errorf("error connecting to mongodb: %w", err)
 	}
 
+	// Здесь указываются с какими коллекциями будет репозиторный слой работать
 	collections := repository.Collections{
 		Task: "task",
 	}
 
-	logger := log.InitSlog()
+	opts := &slog.HandlerOptions{
+		Level: slog.LevelWarn,
+	}
+	// Инициализация логгера
+	logger := log.InitSlog(opts)
 
 	// иньекций зависимостей
 	repository := repository.New(client, "taskdb", collections, logger)
@@ -61,8 +69,9 @@ func Run() error {
 	router := gin.Default()
 	v1.Set(router, usecase, logger)
 
-	slog.Info("starting server on", "host", cfg.Server.Host, "port", cfg.Server.Port)
-	// запуск сервера
+	logger.Info("starting server on", "host", cfg.Server.Host, "port", cfg.Server.Port)
+
+	// Запуск сервера
 	httpServer := httpserver.New(
 		router,
 		httpserver.Port(cfg.Server.Port),
@@ -82,7 +91,6 @@ func Run() error {
 		slog.Error("app - Run - httpServer.Notify: %w", err)
 	}
 
-	// Graceful shutdown
 	slog.Info("Shutting down...")
 	err = httpServer.Shutdown()
 	if err != nil {

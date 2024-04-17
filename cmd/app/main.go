@@ -9,7 +9,7 @@ import (
 func main() {
 	slog.Info("program started")
 	if err := app.Run(); err != nil {
-		slog.Error("failed to start the program", "error", err)
+		slog.Error("failed to start the program", "error", err) //           (－_－) zzZ
 	}
 	slog.Info("program finished")
 }
