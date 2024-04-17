@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"time"
 	"unicode/utf8"
 
@@ -20,7 +21,7 @@ const (
 )
 
 type taskRepo interface {
-	Create(ctx context.Context, task entity.Task, isUnique bool) (string, error)
+	Create(ctx context.Context, task entity.Task) (string, error)
 	List(ctx context.Context, status string, now time.Time) ([]entity.Task, error)
 	Update(ctx context.Context, task entity.Task) error
 	MarkDone(ctx context.Context, id string) error
@@ -29,22 +30,26 @@ type taskRepo interface {
 
 type taskUsecase struct {
 	repo taskRepo
+	log  *slog.Logger
 }
 
-func newTaskUsecase(taskRepo taskRepo) taskUsecase {
+func newTaskUsecase(taskRepo taskRepo, log *slog.Logger) taskUsecase {
 	return taskUsecase{
 		repo: taskRepo,
+		log:  log,
 	}
 }
 
 func (t taskUsecase) Create(ctx context.Context, title string, activeAt entity.TaskDate) (string, error) {
 	if utf8.RuneCountInString(title) > maxTitleLen {
+		t.log.Error(ErrInvalidTitle.Error())
+		t.log.Debug(ErrInvalidTitle.Error(), "title", title)
 		return "", ErrInvalidTitle
 	}
 
 	task := entity.NewTask(title, activeAt)
 
-	id, err := t.repo.Create(ctx, task, true)
+	id, err := t.repo.Create(ctx, task)
 	if err != nil {
 		return "", fmt.Errorf("failed to create task: %w", err)
 	}

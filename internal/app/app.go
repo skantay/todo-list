@@ -14,6 +14,7 @@ import (
 	"github.com/skantay/todo-list/internal/repository"
 	"github.com/skantay/todo-list/internal/usecase"
 	"github.com/skantay/todo-list/pkg/httpserver"
+	"github.com/skantay/todo-list/pkg/log"
 	"github.com/skantay/todo-list/pkg/mongodb"
 
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -51,12 +52,14 @@ func Run() error {
 		Task: "task",
 	}
 
+	logger := log.InitSlog()
+
 	// иньекций зависимостей
-	repository := repository.New(client, "taskdb", collections)
-	usecase := usecase.New(repository)
+	repository := repository.New(client, "taskdb", collections, logger)
+	usecase := usecase.New(repository, logger)
 
 	router := gin.Default()
-	v1.Set(router, usecase)
+	v1.Set(router, usecase, logger)
 
 	slog.Info("starting server on", "host", cfg.Server.Host, "port", cfg.Server.Port)
 	// запуск сервера

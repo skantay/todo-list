@@ -15,25 +15,26 @@
 
 ## Usage
 
-Для запуска сервиса выполните команду make compose-up.
+По умолчанию используется порт 8080.
 
-После запуска сервиса вы сможете просмотреть документацию API по адресу http://localhost:8080/swagger/index.html. По умолчанию используется порт 8080.
+Для запуска сервиса выполните команду `make compose-up`.
+
+После запуска сервиса вы сможете просмотреть документацию API по адресу http://localhost:8080/swagger/index.html.
 
 ## Примеры
 
 Некоторые примеры запросов:
 
 - [Создание задачи](#create-task)
-- Удаление задачи
-- Обновление задачи
-- Пометка задачи как завершенной
-- Получение всех активных задач
-- Получение всех завершенных задач
+- [Удаление задачи](#delete-task)
+- [Обновление задачи](#update-task)
+- [Пометка задачи как завершенной](#mark-task)
+- [Получение всех активных задач](#list-active-tasks)
+- [Получение всех завершенных задач](#list-done-tasks)
 
 ### Создание задачи <a name="create-task"></a>
 
 Request
-
 ```curl
 curl --location --request POST 'localhost:8080/api/v1/todo-list/tasks' \
 --header 'Content-Type: application/json' \
@@ -48,4 +49,72 @@ Response
 {
     "id": "661fbb485131cd932a981b26"
 }
+```
+
+### Удаление задачи <a name="delete-task"></a>
+
+Request
+```curl
+curl --location --request DELETE 'localhost:8080/api/v1/todo-list/tasks/661f23f7f65b382540934424'
+```
+
+No body response
+
+### Обновление задачи <a name="update-task"></a>
+
+Request
+```curl
+curl --location --request PUT 'localhost:8080/api/v1/todo-list/tasks/661fbb485131cd932a981b26' \
+--header 'Content-Type: application/json' \
+--data-raw '{
+    "title":"updated",
+    "activeAt":"2024-04-01"
+}'
+```
+
+No body response
+
+### Пометка задачи как завершенной <a name="mark-task"></a>
+
+Request
+```curl
+curl --location --request PUT 'localhost:8080/api/v1/todo-list/tasks/661fb7d85131cd932a981b25/done'
+```
+
+No body response
+
+### Получение всех активных задач <a name="list-active-tasks"></a>
+
+Request
+```curl
+curl --location --request GET 'localhost:8080/api/v1/todo-list/tasks?status=active'
+```
+
+Response
+```json
+[
+    {
+        "id": "661fbb485131cd932a981b26",
+        "title": "updated",
+        "activeAt": "2024-04-01"
+    }
+]
+```
+
+### Получение всех завершенных задач <a name="list-done-tasks"></a>
+
+Request
+```curl
+curl --location --request GET 'localhost:8080/api/v1/todo-list/tasks?status=done'
+```
+
+Response
+```json
+[
+    {
+        "id": "661fbb485131cd932a981b26",
+        "title": "updated",
+        "activeAt": "2024-04-01"
+    }
+]
 ```

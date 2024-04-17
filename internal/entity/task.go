@@ -5,11 +5,12 @@ import (
 	"errors"
 	"fmt"
 	"time"
-
-	"go.mongodb.org/mongo-driver/bson"
 )
 
-var ErrAlreadyExists = errors.New("task already exists")
+var (
+	ErrAlreadyExists = errors.New("task already exists")
+	ErrTaskNotFound  = errors.New("task does not exist")
+)
 
 const (
 	Active     = "active"
@@ -22,7 +23,7 @@ type TaskDate time.Time
 type Task struct {
 	ID       string   `json:"id"`
 	Title    string   `json:"title"`
-	ActiveAt TaskDate `json:"active_at"`
+	ActiveAt TaskDate `json:"activeAt"`
 	Status   string   `json:"-"`
 }
 
@@ -34,10 +35,6 @@ func NewTask(title string, activeAt TaskDate) Task {
 	t.SetStatusActive()
 
 	return t
-}
-
-func (t *Task) GetStatus() string {
-	return t.Status
 }
 
 func (t *Task) SetStatusDone() {
@@ -67,13 +64,4 @@ func (td *TaskDate) UnmarshalJSON(data []byte) error {
 
 func (td TaskDate) MarshalJSON() ([]byte, error) {
 	return []byte(fmt.Sprintf(`"%s"`, time.Time(td).Format(dateFormat))), nil
-}
-
-func (td *TaskDate) UnmarshalBSON(data []byte) error {
-	var t time.Time
-	if err := bson.Unmarshal(data, &t); err != nil {
-		return err
-	}
-	*td = TaskDate(t)
-	return nil
 }

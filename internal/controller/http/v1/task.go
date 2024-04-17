@@ -3,13 +3,14 @@ package v1
 import (
 	"context"
 	"errors"
-	"fmt"
+	"log/slog"
 	"net/http"
 
 	"github.com/skantay/todo-list/internal/entity"
 	"github.com/skantay/todo-list/internal/usecase"
 
 	"github.com/gin-gonic/gin"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 type taskUsecase interface {
@@ -22,11 +23,13 @@ type taskUsecase interface {
 
 type taskRoutes struct {
 	taskUsecase taskUsecase
+	log         *slog.Logger
 }
 
-func newTaskRoutes(router *gin.RouterGroup, taskUsecase taskUsecase) {
+func newTaskRoutes(router *gin.RouterGroup, taskUsecase taskUsecase, log *slog.Logger) {
 	taskRoutes := taskRoutes{
 		taskUsecase: taskUsecase,
+		log:         log,
 	}
 
 	router.GET("/tasks", taskRoutes.list)
@@ -40,21 +43,31 @@ func newTaskRoutes(router *gin.RouterGroup, taskUsecase taskUsecase) {
 	router.PUT("/tasks/:id/done", taskRoutes.markDone)
 }
 
+type requestTask struct {
+	Title    string          `json:"title" binding:"required"`
+	ActiveAt entity.TaskDate `json:"activeAt" binding:"required"`
+}
+
 func (t taskRoutes) list(c *gin.Context) {
 	status := getStatus(c)
+	t.log.Debug(status)
 
 	tasks, err := t.taskUsecase.List(c.Request.Context(), status)
-	fmt.Println(err)
 	if err != nil {
 		if errors.Is(err, usecase.ErrInvalidStatus) {
+			t.log.Error(err.Error())
 			respondError(c, http.StatusBadRequest)
 
 			return
 		}
-
+		t.log.Error(err.Error())
 		respondError(c, http.StatusInternalServerError)
 
 		return
+	}
+
+	if len(tasks) == 0 {
+		tasks = []entity.Task{}
 	}
 
 	c.JSON(http.StatusOK, tasks)
@@ -64,22 +77,17 @@ func getStatus(c *gin.Context) string {
 	return c.Query("status")
 }
 
-// Create(ctx context.Context, title string, activeAt entity.TaskDate) (string, error)
 func (t taskRoutes) create(c *gin.Context) {
-	type req struct {
-		Title    string          `json:"title" binding:"required"`
-		ActiveAt entity.TaskDate `json:"activeAt" binding:"required"`
-	}
+	var req requestTask
 
-	var request req
+	if err := c.BindJSON(&req); err != nil {
 
-	if err := c.BindJSON(&request); err != nil {
 		respondError(c, http.StatusBadRequest)
 
 		return
 	}
 
-	id, err := t.taskUsecase.Create(c.Request.Context(), request.Title, request.ActiveAt)
+	id, err := t.taskUsecase.Create(c.Request.Context(), req.Title, req.ActiveAt)
 	if err != nil {
 		if errors.Is(err, entity.ErrAlreadyExists) {
 			respondError(c, http.StatusNotFound)
@@ -105,16 +113,11 @@ func (t taskRoutes) create(c *gin.Context) {
 	c.JSON(http.StatusCreated, response)
 }
 
-// UpdateTask(ctx context.Context, task entity.Task) error
 func (t taskRoutes) update(c *gin.Context) {
-	type req struct {
-		Title    string          `json:"title" binding:"required"`
-		ActiveAt entity.TaskDate `json:"activeAt" binding:"required"`
-	}
+	var req requestTask
 
-	var request req
+	if err := c.BindJSON(&req); err != nil {
 
-	if err := c.BindJSON(&request); err != nil {
 		respondError(c, http.StatusBadRequest)
 
 		return
@@ -122,34 +125,59 @@ func (t taskRoutes) update(c *gin.Context) {
 
 	id := c.Param("id")
 
-	task := entity.NewTask(request.Title, request.ActiveAt)
+	task := entity.NewTask(req.Title, req.ActiveAt)
 	task.ID = id
 
 	if err := t.taskUsecase.UpdateTask(c.Request.Context(), task); err != nil {
-		fmt.Println(err)
+		if errors.Is(err, entity.ErrTaskNotFound) {
+			c.Status(http.StatusNotFound)
+		} else if errors.Is(err, primitive.ErrInvalidHex) {
+			c.Status(http.StatusBadRequest)
+		} else {
+			c.Status(http.StatusInternalServerError)
+		}
+
+		return
 	}
 
-	c.JSON(http.StatusOK, nil)
+	c.Status(http.StatusNoContent)
+	return
 }
 
-// Delete(ctx context.Context, id string) error
 func (t taskRoutes) delete(c *gin.Context) {
 	id := c.Param("id")
 
 	if err := t.taskUsecase.Delete(c.Request.Context(), id); err != nil {
-		fmt.Println(err)
+		if errors.Is(err, entity.ErrTaskNotFound) {
+			c.Status(http.StatusNotFound)
+		} else if errors.Is(err, primitive.ErrInvalidHex) {
+			c.Status(http.StatusBadRequest)
+		} else {
+			c.Status(http.StatusInternalServerError)
+		}
+
+		return
 	}
 
-	c.JSON(http.StatusOK, nil)
+	c.Status(http.StatusNoContent)
+	return
 }
 
-// MarkTaskDone(ctx context.Context, id string) error
 func (t taskRoutes) markDone(c *gin.Context) {
 	id := c.Param("id")
 
 	if err := t.taskUsecase.MarkTaskDone(c.Request.Context(), id); err != nil {
-		fmt.Println(err)
+		if errors.Is(err, entity.ErrTaskNotFound) {
+			c.Status(http.StatusNotFound)
+		} else if errors.Is(err, primitive.ErrInvalidHex) {
+			c.Status(http.StatusBadRequest)
+		} else {
+			c.Status(http.StatusInternalServerError)
+		}
+
+		return
 	}
 
-	c.JSON(http.StatusOK, nil)
+	c.Status(http.StatusNoContent)
+	return
 }

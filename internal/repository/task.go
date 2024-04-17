@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"time"
 
 	"github.com/skantay/todo-list/internal/entity"
@@ -11,28 +12,30 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 type taskRepository struct {
 	collection *mongo.Collection
+	log        *slog.Logger
 }
 
-func newTaskRepository(collection *mongo.Collection) taskRepository {
+func newTaskRepository(collection *mongo.Collection, log *slog.Logger) taskRepository {
 	return taskRepository{
 		collection: collection,
+		log:        log,
 	}
 }
 
-func (t taskRepository) Create(ctx context.Context, task entity.Task, isUnique bool) (string, error) {
-	if isUnique {
-
-		existingTask, err := t.findTask(ctx, task.Title, task.ActiveAt)
-		if err != nil {
-			return "", fmt.Errorf("failed to check task uniqueness: %w", err)
-		}
-		if existingTask {
-			return "", entity.ErrAlreadyExists
-		}
+func (t taskRepository) Create(ctx context.Context, task entity.Task) (string, error) {
+	existingTask, err := t.findTask(ctx, task.Title, task.ActiveAt)
+	if err != nil {
+		t.log.Error(err.Error())
+		return "", fmt.Errorf("failed to check task uniqueness: %w", err)
+	}
+	if existingTask {
+		t.log.Debug(entity.ErrAlreadyExists.Error())
+		return "", entity.ErrAlreadyExists
 	}
 
 	taskBSON := bson.M{
@@ -43,6 +46,7 @@ func (t taskRepository) Create(ctx context.Context, task entity.Task, isUnique b
 
 	result, err := t.collection.InsertOne(ctx, taskBSON)
 	if err != nil {
+		t.log.Error(err.Error())
 		return "", fmt.Errorf("failed to insert a task into db: %w", err)
 	}
 
@@ -88,7 +92,9 @@ func (t taskRepository) List(ctx context.Context, status string, now time.Time) 
 		"activeAt": bson.M{"$lte": now},
 	}
 
-	cursor, err := t.collection.Find(ctx, filter)
+	sort := bson.D{{"activeAt", 1}}
+
+	cursor, err := t.collection.Find(ctx, filter, options.Find().SetSort(sort))
 	if err != nil {
 		return nil, fmt.Errorf("failed to cursor a collection: %w", err)
 	}
@@ -120,8 +126,19 @@ func (t taskRepository) List(ctx context.Context, status string, now time.Time) 
 }
 
 func (t taskRepository) Update(ctx context.Context, task entity.Task) error {
+	existingTask, err := t.findTask(ctx, task.Title, task.ActiveAt)
+	if err != nil {
+		t.log.Error(err.Error())
+		return fmt.Errorf("failed to check task uniqueness: %w", err)
+	}
+	if existingTask {
+		t.log.Debug(entity.ErrAlreadyExists.Error(), "task id", task.ID)
+		return entity.ErrAlreadyExists
+	}
+
 	id, err := primitive.ObjectIDFromHex(task.ID)
 	if err != nil {
+		t.log.Error(err.Error())
 		return fmt.Errorf("failed to convert ObjectId: %w", err)
 	}
 
@@ -130,17 +147,19 @@ func (t taskRepository) Update(ctx context.Context, task entity.Task) error {
 	update := bson.M{
 		"$set": bson.M{
 			"title":    task.Title,
-			"activeAt": task.ActiveAt,
+			"activeAt": task.ActiveAt.Time(),
 		},
 	}
 
 	result, err := t.collection.UpdateOne(ctx, filter, update)
 	if err != nil {
+		t.log.Error(err.Error())
 		return fmt.Errorf("update failed: %w", err)
 	}
 
 	if result.ModifiedCount == 0 {
-		return mongo.ErrNoDocuments
+		t.log.Debug(entity.ErrTaskNotFound.Error(), "task id", task.ID)
+		return entity.ErrTaskNotFound
 	}
 
 	return nil
@@ -165,7 +184,7 @@ func (t taskRepository) MarkDone(ctx context.Context, id string) error {
 	}
 
 	if result.ModifiedCount == 0 {
-		return mongo.ErrNoDocuments
+		return entity.ErrTaskNotFound
 	}
 
 	return nil
@@ -184,7 +203,7 @@ func (t taskRepository) Delete(ctx context.Context, id string) error {
 	}
 
 	if result.DeletedCount == 0 {
-		return mongo.ErrNoDocuments
+		return entity.ErrTaskNotFound
 	}
 
 	return nil
