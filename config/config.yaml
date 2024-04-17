@@ -1,6 +1,6 @@
 server:
   host: localhost
-  port: 8080
+  port: 7777
 mongodb:
   user: admin
   password: password

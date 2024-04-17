@@ -15,11 +15,11 @@
 
 ## Usage
 
-По умолчанию используется порт 8080.
+По умолчанию используется порт 7777 (vip kazakh port xD)
 
 Для запуска сервиса выполните команду `make compose-up`.
 
-После запуска сервиса вы сможете просмотреть документацию API по адресу http://localhost:8080/swagger/index.html.
+После запуска сервиса вы сможете просмотреть документацию API по адресу http://localhost:7777/swagger/index.html.
 
 ## Примеры
 
@@ -36,7 +36,7 @@
 
 Request
 ```curl
-curl --location --request POST 'localhost:8080/api/v1/todo-list/tasks' \
+curl --location --request POST 'localhost:7777/api/v1/todo-list/tasks' \
 --header 'Content-Type: application/json' \
 --data-raw '{
     "title":"title",
@@ -55,7 +55,7 @@ Response
 
 Request
 ```curl
-curl --location --request DELETE 'localhost:8080/api/v1/todo-list/tasks/661f23f7f65b382540934424'
+curl --location --request DELETE 'localhost:7777/api/v1/todo-list/tasks/661f23f7f65b382540934424'
 ```
 
 No body response
@@ -64,7 +64,7 @@ No body response
 
 Request
 ```curl
-curl --location --request PUT 'localhost:8080/api/v1/todo-list/tasks/661fbb485131cd932a981b26' \
+curl --location --request PUT 'localhost:7777/api/v1/todo-list/tasks/661fbb485131cd932a981b26' \
 --header 'Content-Type: application/json' \
 --data-raw '{
     "title":"updated",
@@ -78,7 +78,7 @@ No body response
 
 Request
 ```curl
-curl --location --request PUT 'localhost:8080/api/v1/todo-list/tasks/661fb7d85131cd932a981b25/done'
+curl --location --request PUT 'localhost:7777/api/v1/todo-list/tasks/661fb7d85131cd932a981b25/done'
 ```
 
 No body response
@@ -87,7 +87,7 @@ No body response
 
 Request
 ```curl
-curl --location --request GET 'localhost:8080/api/v1/todo-list/tasks?status=active'
+curl --location --request GET 'localhost:7777/api/v1/todo-list/tasks?status=active'
 ```
 
 Response
@@ -105,7 +105,7 @@ Response
 
 Request
 ```curl
-curl --location --request GET 'localhost:8080/api/v1/todo-list/tasks?status=done'
+curl --location --request GET 'localhost:7777/api/v1/todo-list/tasks?status=done'
 ```
 
 Response

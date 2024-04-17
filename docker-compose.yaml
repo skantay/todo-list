@@ -16,7 +16,7 @@ services:
     depends_on:
       - mongodb
     ports:
-      - 8080:8080
+      - 7777:7777
 
 networks:
   local:
