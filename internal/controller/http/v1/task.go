@@ -91,6 +91,7 @@ func getStatus(c *gin.Context) string {
 // @Param requestTask body requestTask true "Task details"
 // @Success 201 {object} resp
 // @Failure 400
+// @Failure 404
 // @Failure 500
 // @Router /tasks [post]
 func (t taskRoutes) create(c *gin.Context) {
@@ -108,6 +109,9 @@ func (t taskRoutes) create(c *gin.Context) {
 		if errors.Is(err, entity.ErrInvalidTitle) {
 			t.log.Warn(http.StatusText(http.StatusBadRequest), "error", err)
 			c.Status(http.StatusBadRequest)
+		} else if errors.Is(err, entity.ErrAlreadyExists) {
+			t.log.Warn(http.StatusText(http.StatusNotFound), "error", err)
+			c.Status(http.StatusNotFound)
 		} else {
 			t.log.Warn(http.StatusText(http.StatusInternalServerError), "error", err)
 			c.Status(http.StatusInternalServerError)
@@ -152,8 +156,8 @@ func (t taskRoutes) update(c *gin.Context) {
 
 	if err := t.taskUsecase.UpdateTask(c.Request.Context(), task); err != nil {
 		if errors.Is(err, entity.ErrAlreadyExists) {
-			t.log.Warn(http.StatusText(http.StatusBadRequest), "error", err)
-			c.Status(http.StatusBadRequest)
+			t.log.Warn(http.StatusText(http.StatusNotFound), "error", err)
+			c.Status(http.StatusNotFound)
 		} else if errors.Is(err, entity.ErrTaskNotFound) {
 			t.log.Warn(http.StatusText(http.StatusNotFound), "error", err)
 			c.Status(http.StatusNotFound)
