@@ -57,7 +57,7 @@ type resp struct {
 // @Success 200 {array} entity.Task
 // @Failure 400
 // @Failure 500
-// @Router /tasks [get]
+// @Router /api/v1/todo-list/tasks [get]
 func (t taskRoutes) list(c *gin.Context) {
 	status := getStatus(c)
 
@@ -93,7 +93,7 @@ func getStatus(c *gin.Context) string {
 // @Failure 400
 // @Failure 404
 // @Failure 500
-// @Router /tasks [post]
+// @Router /api/v1/todo-list/tasks [post]
 func (t taskRoutes) create(c *gin.Context) {
 	var req requestTask
 
@@ -138,7 +138,7 @@ func (t taskRoutes) create(c *gin.Context) {
 // @Failure 400
 // @Failure 404
 // @Failure 500
-// @Router /tasks/{id} [put]
+// @Router /api/v1/todo-list/tasks/{id} [put]
 func (t taskRoutes) update(c *gin.Context) {
 	var req requestTask
 
@@ -179,7 +179,7 @@ func (t taskRoutes) update(c *gin.Context) {
 // @Failure 400
 // @Failure 404
 // @Failure 500
-// @Router /tasks/{id} [delete]
+// @Router /api/v1/todo-list/tasks/{id} [delete]
 func (t taskRoutes) delete(c *gin.Context) {
 	id := c.Param("id")
 
@@ -207,7 +207,7 @@ func (t taskRoutes) delete(c *gin.Context) {
 // @Success 204
 // @Failure 404
 // @Failure 500
-// @Router /tasks/{id}/done [put]
+// @Router /api/v1/todo-list/tasks/{id}/done [put]
 func (t taskRoutes) markDone(c *gin.Context) {
 	id := c.Param("id")
 

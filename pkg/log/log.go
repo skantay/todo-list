@@ -7,7 +7,7 @@ import (
 
 func InitSlog() *slog.Logger {
 	opts := &slog.HandlerOptions{
-		Level: slog.LevelDebug,
+		Level: slog.LevelWarn,
 	}
 	handler := slog.NewTextHandler(os.Stdout, opts)
 	logger := slog.New(handler)
