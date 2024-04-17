@@ -2,7 +2,7 @@
 // Source: internal/usecase/task.go
 
 // Package mock_usecase is a generated GoMock package.
-package mock_usecase
+package usecase
 
 import (
 	context "context"

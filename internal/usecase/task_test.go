@@ -1,16 +1,27 @@
 package usecase
 
-import "testing"
+import (
+	"context"
+	"testing"
+	"time"
+
+	"github.com/golang/mock/gomock"
+	"github.com/skantay/todo-list/internal/entity"
+	"github.com/stretchr/testify/assert"
+)
 
 func TestTaskUsecase_Create(t *testing.T) {
-	mockRepo := &mocks.MockTaskRepository{}
-	usecase := NewTaskUsecase(mockRepo)
+	usecase := NewMocktaskRepo(gomock.NewController(t))
 
 	// Mock repository behavior
-	mockRepo.EXPECT().Create(gomock.Any(), gomock.Any()).Return("id123", nil)
+	usecase.EXPECT().Create(gomock.Any(), gomock.Any()).Return("id123", nil)
 
-	// Call the method being tested
-	id, err := usecase.Create(context.Background(), "title", time.Now())
+	task := entity.NewTask("title", entity.TaskDate(time.Now()))
+	id, err := usecase.Create(context.Background(), task)
+
+	if id != "id123" {
+		t.Error(id)
+	}
 
 	// Assertions
 	assert.NoError(t, err)
